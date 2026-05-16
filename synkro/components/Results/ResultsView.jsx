@@ -7,7 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Shield, Code, Zap, TestTube, Package, ChevronDown, ChevronUp, FileCode, CheckCircle2, Filter, Sparkles, Loader2, Bot, AlertCircle } from 'lucide-react';
 
-import { FullIDE as EditorWorkspace } from '@/components/Editor/FullIDE';
+import dynamic from 'next/dynamic';
+
+const EditorWorkspace = dynamic(() => import('@/components/Editor/FullIDE').then(mod => mod.FullIDE), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-3xl animate-in fade-in duration-500">
+      <div className="flex flex-col items-center gap-6">
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 animate-spin" />
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xl font-black tracking-[0.3em] uppercase text-indigo-300 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]">Initializing</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Environment Setup</span>
+        </div>
+      </div>
+    </div>
+  )
+});
 
 const severityConfig = {
   critical: { label: 'Critical', variant: 'destructive', textClass: 'text-red-500' },

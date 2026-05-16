@@ -168,8 +168,18 @@ export function FullIDE({ issue, repoUrl, onClose }) {
     
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
+    const safeFit = () => {
+      try {
+        if (termRef.current && termRef.current.offsetWidth > 0 && termRef.current.offsetHeight > 0) {
+          fitAddon.fit();
+        }
+      } catch (e) {
+        console.warn('XTerm fit failed:', e);
+      }
+    };
+
     terminal.open(termRef.current);
-    fitAddon.fit();
+    safeFit();
     xtermInstance.current = terminal;
 
     let currentInput = '';
@@ -183,6 +193,8 @@ export function FullIDE({ issue, repoUrl, onClose }) {
       termCwdRef.current = data.cwd;
       terminal.write(data.output);
       terminal.write(`\r\n\x1b[32m${data.cwd}\x1b[0m $ `);
+      // Fit again after first write
+      setTimeout(safeFit, 100);
     });
 
     terminal.onData(async e => {
@@ -220,7 +232,7 @@ export function FullIDE({ issue, repoUrl, onClose }) {
       }
     });
 
-    const resizeObserver = new ResizeObserver(() => fitAddon.fit());
+    const resizeObserver = new ResizeObserver(() => safeFit());
     resizeObserver.observe(termRef.current);
 
     return () => {
