@@ -1,138 +1,213 @@
 'use client';
 
 import Link from 'next/link';
-import { Shield, ArrowRight, Code, Zap, Package, Search, CheckCircle2 } from 'lucide-react';
+import {
+  Shield, ArrowRight, Code, Zap, Package,
+  CheckCircle2, GitBranch, Lock, Globe,
+  Sparkles, ChevronRight, Terminal
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-function FeatureCard({ icon: Icon, title, description }) {
+function FeatureCard({ icon: Icon, title, description, accent = 'indigo' }) {
   return (
-    <div className="flex flex-col gap-4 p-8 glass-panel group hover:-translate-y-1 transition-all duration-300">
-      <div className="w-12 h-12 bg-white/50 text-blue-600 flex items-center justify-center rounded-2xl border border-gray-100/50 shadow-sm group-hover:scale-110 transition-transform">
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-        <p className="text-gray-500 leading-relaxed text-sm">{description}</p>
-      </div>
-    </div>
+    <Card className="hover:border-primary/50 transition-colors">
+      <CardHeader>
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+          <Icon className="w-5 h-5 text-primary" />
+        </div>
+        <CardTitle className="text-xl">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription className="text-sm leading-relaxed">{description}</CardDescription>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StepCard({ number, title, description }) {
+  return (
+    <Card className="text-center hover:border-primary/50 transition-colors">
+      <CardHeader>
+        <div className="w-12 h-12 mx-auto rounded-full bg-secondary flex items-center justify-center font-bold text-lg mb-4">
+          {number}
+        </div>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription>{description}</CardDescription>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen text-gray-900 font-sans selection:bg-blue-100 selection:text-blue-900">
-      
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-nav">
+      <header className="sticky top-0 w-full z-50 border-b bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Shield className="h-6 w-6 text-indigo-600" />
-            <span className="text-xl font-black tracking-tight text-gray-900">SYNKRO</span>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
+              <Shield className="h-5 w-5" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">SYNKRO</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Sign In
             </Link>
-            <Link href="/dashboard" className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl transition-all shadow-sm">
-              Go to Tool
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/login">
+                Start Free <ChevronRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <main className="pt-32 pb-24 px-6 relative overflow-hidden">
-        {/* Subtle background decoration */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-20 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-b from-indigo-300 to-transparent blur-[100px] rounded-full" />
-        </div>
-
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-8">
-
+      <main className="pt-24 pb-20 px-6">
+        <div className="max-w-5xl mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[1.05] text-gray-900">
-            Secure your codebase. <br className="hidden md:block" />
-            <span className="text-gradient">
-              Ship with absolute confidence.
-            </span>
+          <Badge variant="secondary" className="px-3 py-1 text-xs">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+            Powered by Gemini AI · GitHub Native
+          </Badge>
+
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
+            Ship code that's
+            <br className="hidden md:block" />
+            <span className="text-primary">actually secure.</span>
           </h1>
-          
-          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            The ultimate static analysis and vulnerability scanner. Detect security flaws, code smells, and unsafe dependencies instantly. Powered by Gemini AI.
+
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            SYNKRO scans your entire GitHub repository — public or private — for security
+            vulnerabilities, code smells, and unsafe dependencies. Then AI fixes them for you.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link href="/login" className="w-full sm:w-auto px-8 py-4 btn-gradient rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
-              Start Scanning Free <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link href="#features" className="w-full sm:w-auto px-8 py-4 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-2xl font-bold text-lg transition-all flex items-center justify-center">
-              Explore Features
-            </Link>
+            <Button asChild size="lg" className="w-full sm:w-auto h-12 px-8">
+              <Link href="/login">
+                <GitBranch className="w-4 h-4 mr-2" />
+                Connect GitHub & Scan
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8">
+              <Link href="/login">Try as Guest</Link>
+            </Button>
           </div>
-          
-          <div className="flex items-center justify-center gap-8 pt-8 text-sm font-semibold text-gray-400">
-            <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500"/> No credit card required</div>
-            <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500"/> Guest mode available</div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-sm font-medium text-muted-foreground">
+            {[
+              { icon: CheckCircle2, label: 'Free forever' },
+              { icon: Lock, label: 'Private repos supported' },
+              { icon: Globe, label: 'No install required' },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-center gap-2">
+                <Icon className="w-4 h-4" />
+                {label}
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Terminal preview */}
+        <div className="max-w-3xl mx-auto mt-20">
+          <Card className="overflow-hidden border-border bg-card shadow-lg animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50">
+              <div className="flex gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500" />
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <div className="flex-1 text-center">
+                <span className="text-xs text-muted-foreground font-mono bg-background px-3 py-1 rounded-md border">
+                  synkro scan github.com/your-org/your-repo
+                </span>
+              </div>
+            </div>
+            <div className="p-6 font-mono text-sm space-y-3 bg-[#0a0a0a] text-gray-300">
+              {[
+                { t: '→', c: 'text-blue-400', msg: 'Cloning repository...' },
+                { t: '✓', c: 'text-green-400', msg: '214 files discovered' },
+                { t: '⚠', c: 'text-red-400',   msg: '[CRITICAL] SQL Injection — /api/users.js:47' },
+                { t: '⚠', c: 'text-orange-400', msg: '[HIGH] Hardcoded secret — /config/db.js:12' },
+                { t: '⚠', c: 'text-yellow-400', msg: '[MEDIUM] Unpinned dependency — lodash@^4.0.0' },
+                { t: '✦', c: 'text-purple-400', msg: 'Gemini AI generating fixes...' },
+                { t: '✓', c: 'text-green-400', msg: 'Scan complete · 23 issues · 3 auto-fixed' },
+              ].map((line, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className={`${line.c} font-bold shrink-0`}>{line.t}</span>
+                  <span>{line.msg}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
 
         {/* Features Section */}
-        <div id="features" className="max-w-6xl mx-auto mt-40 scroll-mt-24">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 mb-4">Enterprise-grade analysis in seconds.</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Everything you need to audit, secure, and fix your code repository before pushing to production.</p>
+        <div className="max-w-6xl mx-auto mt-32">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight mb-4">Enterprise-grade analysis.</h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Everything you need to audit, secure, and fix your codebase before pushing to production.
+            </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard icon={Shield} title="Security Scanning" description="Detects SQL injection, XSS, hardcoded secrets, CORS misconfigurations, and prototype pollution instantly." />
-            <FeatureCard icon={Code} title="Code Quality" description="Identifies dead code, empty catch blocks, code smells, anti-patterns, and cognitive complexity issues." />
-            <FeatureCard icon={Zap} title="Performance" description="Finds memory leaks, N+1 queries, async anti-patterns, excessive DOM manipulation, and bottlenecks." />
-            <FeatureCard icon={Package} title="Dependencies" description="Checks for compromised packages, unpinned versions, known CVEs, and supply chain risks via OSV integration." />
+            <FeatureCard
+              icon={Shield}
+              title="Security Scanning"
+              description="SQL injection, XSS, hardcoded secrets, CORS misconfigs, and prototype pollution."
+            />
+            <FeatureCard
+              icon={Code}
+              title="Code Quality"
+              description="Dead code, empty catch blocks, anti-patterns, and cognitive complexity issues."
+            />
+            <FeatureCard
+              icon={Zap}
+              title="Performance"
+              description="Memory leaks, N+1 queries, async anti-patterns, and DOM bottlenecks."
+            />
+            <FeatureCard
+              icon={Package}
+              title="Dependencies"
+              description="Vulnerable packages, unpinned versions, CVEs, and supply chain risks."
+            />
           </div>
         </div>
 
-        {/* How it Works Section */}
-        <div className="max-w-5xl mx-auto mt-40 mb-20 relative z-10">
-          <div className="glass-panel p-10 md:p-16">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 mb-4">How SYNKRO Works</h2>
-              <p className="text-gray-500 text-lg max-w-2xl mx-auto">A seamless workflow from code ingestion to AI-powered remediation.</p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-12 relative">
-              {/* Connecting line for desktop */}
-              <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-blue-100 via-purple-100 to-emerald-100 -z-10" />
-              
-              <div className="text-center relative">
-                <div className="w-16 h-16 mx-auto bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-center text-blue-600 font-black text-xl mb-6">1</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Connect Repository</h3>
-                <p className="text-gray-500 leading-relaxed text-sm">Paste any public or private GitHub repository URL. SYNKRO securely clones and prepares the codebase for deep analysis.</p>
-              </div>
-              
-              <div className="text-center relative">
-                <div className="w-16 h-16 mx-auto bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-center text-purple-600 font-black text-xl mb-6">2</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Deep Scan Engine</h3>
-                <p className="text-gray-500 leading-relaxed text-sm">Our dual-engine architecture runs static AST analysis alongside dynamic OSV vulnerability lookups in milliseconds.</p>
-              </div>
-              
-              <div className="text-center relative">
-                <div className="w-16 h-16 mx-auto bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-center text-emerald-600 font-black text-xl mb-6">3</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">AI Auto-Remediation</h3>
-                <p className="text-gray-500 leading-relaxed text-sm">Review the findings in a beautiful IDE interface and let Gemini or Grok AI automatically write the secure fix for you.</p>
-              </div>
-            </div>
+        {/* How it Works */}
+        <div className="max-w-5xl mx-auto mt-32 mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight mb-4">Three steps to secure code.</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <StepCard number="1" title="Connect Repo"
+              description="Sign in with GitHub to access all your repos, or paste any public URL." />
+            <StepCard number="2" title="Deep Scan"
+              description="Our engine runs static AST analysis + OSV lookups across your codebase." />
+            <StepCard number="3" title="AI Auto-Fix"
+              description="Review findings in a beautiful IDE and let Gemini write the secure fix." />
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-100 py-12 px-6">
+      <footer className="border-t py-8 px-6 bg-muted/30">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-900 font-bold">
-            <Shield className="w-5 h-5 text-indigo-600" />
+          <div className="flex items-center gap-2 font-bold">
+            <Shield className="w-5 h-5 text-primary" />
             SYNKRO
           </div>
-          <p className="text-gray-400 text-sm font-medium">© {new Date().getFullYear()} Synkro Security. All rights reserved.</p>
+          <p className="text-muted-foreground text-sm">
+            © {new Date().getFullYear()} Synkro Security. All rights reserved.
+          </p>
+          <div className="flex gap-4 text-sm font-medium text-muted-foreground">
+            <Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link>
+            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          </div>
         </div>
       </footer>
     </div>

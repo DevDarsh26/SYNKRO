@@ -1,42 +1,39 @@
 import { NextResponse } from 'next/server';
-import { generateCodeFix } from '@/lib/gemini/client';
+import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
+import { generateCodeFix, generateFullFileFix, generateScanReport } from '@/lib/gemini/client';
+
+/**
+ * POST /api/fix
+ * Rate-limited: 20 AI fix requests per minute per IP.
+ */
 
 export async function POST(request) {
+  const rl = rateLimit(request, { limit: 20, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'AI rate limit reached. Please wait a moment before requesting another fix.' },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
-    const { issue, fullCode, mode, aiKey } = await request.json();
+    const { issue, fullCode, customKey, mode, allIssues } = await request.json();
 
-    if (!issue || !fullCode) {
-      return NextResponse.json(
-        { error: 'Issue and full code are required' },
-        { status: 400 }
-      );
+    if (!issue) {
+      return NextResponse.json({ error: 'Issue is required' }, { status: 400 });
     }
 
-    if (!aiKey && !process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'AI API Key is not configured. Add it in Workspace Settings.' },
-        { status: 500 }
-      );
-    }
-
-    // Generate fix using Gemini or Grok
     let fixedCode;
     if (mode === 'full') {
-      const { generateFullFileFix } = await import('@/lib/gemini/client');
-      fixedCode = await generateFullFileFix(issue, fullCode, aiKey);
+      fixedCode = await generateFullFileFix(issue, fullCode || '', customKey, allIssues);
     } else {
-      fixedCode = await generateCodeFix(issue, fullCode, aiKey);
+      fixedCode = await generateCodeFix(issue, fullCode || '', customKey, allIssues);
     }
 
-    return NextResponse.json({
-      success: true,
-      fixedCode,
-      issue: {
-        title: issue.title,
-        line: issue.line,
-        file: issue.file,
-      },
-    });
+    return NextResponse.json(
+      { fixedCode },
+      { headers: rateLimitHeaders(rl) }
+    );
   } catch (error) {
     console.error('Fix generation error:', error);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cloneRepository, getRepositoryFiles, readFileContent, cleanupRepository } from '@/lib/github/clone';
 import { analyzeFileStatic, analyzePackageJson } from '@/lib/analyzers/static';
+import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 
 // Shared scan results store
 if (!globalThis.__scanResults) {
@@ -8,14 +9,39 @@ if (!globalThis.__scanResults) {
 }
 const scanResults = globalThis.__scanResults;
 
+// Clean up old scans (> 30 min) to avoid memory leaks
+function pruneOldScans() {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [id, scan] of scanResults.entries()) {
+    const ts = parseInt(id.split('_')[1] || '0', 10);
+    if (ts < cutoff) scanResults.delete(id);
+  }
+}
+
 export async function POST(request) {
+  // Rate limit: 30 scans per minute per IP
+  const rl = rateLimit(request, { limit: 30, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Too many scans. Please wait a moment before trying again.' },
+      {
+        status: 429,
+        headers: {
+          ...rateLimitHeaders(rl),
+          'Retry-After': String(rl.reset - Math.floor(Date.now() / 1000)),
+        },
+      }
+    );
+  }
+
   try {
+    pruneOldScans();
     const { repoUrl, githubToken } = await request.json();
 
     if (!repoUrl) {
       return NextResponse.json(
         { error: 'Repository URL is required' },
-        { status: 400 }
+        { status: 400, headers: rateLimitHeaders(rl) }
       );
     }
 
@@ -35,11 +61,10 @@ export async function POST(request) {
       console.error('Background scan error:', err);
     });
 
-    return NextResponse.json({
-      scanId,
-      status: 'started',
-      message: 'Scan started successfully',
-    });
+    return NextResponse.json(
+      { scanId, status: 'started', message: 'Scan started successfully' },
+      { headers: rateLimitHeaders(rl) }
+    );
   } catch (error) {
     console.error('Scan error:', error);
     return NextResponse.json(
@@ -68,61 +93,74 @@ async function scanRepository(scanId, repoUrl, githubToken) {
     // Get all code files
     const files = await getRepositoryFiles(clonedPath);
 
-    // Cap at 100 files for performance
-    const filesToScan = files.slice(0, 100);
+    // Cap at 150 files for performance (up from 100)
+    const filesToScan = files.slice(0, 150);
 
     scanResults.set(scanId, {
       ...scanResults.get(scanId),
       progress: 30,
-      message: `Found ${files.length} files. Analyzing${files.length > 100 ? ' (first 100)' : ''}...`,
+      message: `Found ${files.length} files. Analyzing${files.length > 150 ? ' (first 150)' : ''}...`,
       totalFiles: filesToScan.length,
     });
 
-    // Analyze files with built-in static analyzer
+    // Analyze files — batch in groups of 10 for better throughput
     const allIssues = [];
     let processedFiles = 0;
+    const BATCH = 10;
 
-    for (const file of filesToScan) {
-      try {
-        const content = await readFileContent(file.fullPath);
+    for (let i = 0; i < filesToScan.length; i += BATCH) {
+      const batch = filesToScan.slice(i, i + BATCH);
 
-        if (content && content.length < 100000) {
-          let issues;
-
-          if (file.name === 'package.json') {
-            issues = await analyzePackageJson(content, file.path);
-          } else {
-            issues = analyzeFileStatic(content, file.path);
+      await Promise.all(
+        batch.map(async (file) => {
+          try {
+            const content = await readFileContent(file.fullPath);
+            if (content && content.length < 100000) {
+              let issues;
+              if (file.name === 'package.json') {
+                issues = await analyzePackageJson(content, file.path);
+              } else {
+                issues = analyzeFileStatic(content, file.path);
+              }
+              if (issues && issues.length > 0) {
+                allIssues.push(...issues);
+              }
+            }
+          } catch (err) {
+            console.error(`Error analyzing file ${file.path}:`, err);
+          } finally {
+            processedFiles++;
           }
+        })
+      );
 
-          if (issues && issues.length > 0) {
-            allIssues.push(...issues);
-          }
-        }
-
-        processedFiles++;
-        const progress = 30 + Math.floor((processedFiles / filesToScan.length) * 65);
-
-        scanResults.set(scanId, {
-          ...scanResults.get(scanId),
-          progress: Math.min(progress, 95),
-          message: `Analyzed ${processedFiles}/${filesToScan.length} files...`,
-        });
-      } catch (error) {
-        console.error(`Error analyzing file ${file.path}:`, error);
-      }
+      const progress = 30 + Math.floor((processedFiles / filesToScan.length) * 65);
+      scanResults.set(scanId, {
+        ...scanResults.get(scanId),
+        progress: Math.min(progress, 95),
+        message: `Analyzed ${processedFiles}/${filesToScan.length} files...`,
+      });
     }
 
-    // Deduplicate and sort by severity
+    // Deduplicate by (file + line + title)
+    const seen = new Set();
+    const unique = allIssues.filter((issue) => {
+      const key = `${issue.file}:${issue.line}:${issue.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // Sort by severity
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-    allIssues.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
+    unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
 
     // Scan complete
     scanResults.set(scanId, {
       status: 'completed',
       progress: 100,
-      message: `Scan completed. Found ${allIssues.length} issues in ${processedFiles} files.`,
-      results: allIssues,
+      message: `Scan completed. Found ${unique.length} issues in ${processedFiles} files.`,
+      results: unique,
       repository: { owner, repo },
       totalFiles: filesToScan.length,
       completedAt: new Date().toISOString(),
@@ -140,32 +178,27 @@ async function scanRepository(scanId, repoUrl, githubToken) {
       error: error.message,
     });
 
-    // Cleanup on error
     if (repoPath) {
-      await cleanupRepository(repoPath);
+      await cleanupRepository(repoPath).catch(() => {});
     }
   }
 }
 
 export async function GET(request) {
+  // Rate limit status polling: 120 req/min
+  const rl = rateLimit(request, { limit: 120, windowMs: 60_000 });
+
   const { searchParams } = new URL(request.url);
   const scanId = searchParams.get('scanId');
 
   if (!scanId) {
-    return NextResponse.json(
-      { error: 'Scan ID is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Scan ID is required' }, { status: 400 });
   }
 
   const result = scanResults.get(scanId);
-
   if (!result) {
-    return NextResponse.json(
-      { error: 'Scan not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: 'Scan not found' }, { status: 404 });
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: rateLimitHeaders(rl) });
 }

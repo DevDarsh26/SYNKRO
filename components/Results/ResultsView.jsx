@@ -1,151 +1,145 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { 
-  Shield, Code, Zap, TestTube, Package, ChevronDown, ChevronUp, 
-  FileCode, CheckCircle2, Filter, Sparkles, Loader2, Bot, AlertCircle, 
+import {
+  Shield, Code, Zap, TestTube, Package, ChevronDown, ChevronUp,
+  FileCode, CheckCircle2, Filter, Sparkles, Loader2, Bot, AlertCircle,
   Search as SearchIcon, Download, PieChart, Info
 } from 'lucide-react';
-
 import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
-const EditorWorkspace = dynamic(() => import('@/components/Editor/FullIDE').then(mod => mod.FullIDE), {
-  ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-2xl">
-      <div className="flex flex-col items-center gap-4 animate-float-up">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-        <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Initializing Workspace</span>
+const EditorWorkspace = dynamic(
+  () => import('@/components/Editor/FullIDE').then(m => m.FullIDE),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Initializing Workspace</span>
+        </div>
       </div>
-    </div>
-  )
-});
+    ),
+  }
+);
 
 const severityConfig = {
-  critical: { label: 'Critical', bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', color: '#ef4444' },
-  high: { label: 'High', bg: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500', color: '#f97316' },
-  medium: { label: 'Medium', bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500', color: '#f59e0b' },
-  low: { label: 'Low', bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500', color: '#3b82f6' },
+  critical: { label: 'Critical', color: '#ef4444', tw: 'bg-destructive/10 text-destructive border-destructive/20' },
+  high:     { label: 'High',     color: '#f97316', tw: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+  medium:   { label: 'Medium',   color: '#f59e0b', tw: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+  low:      { label: 'Low',      color: '#22c55e', tw: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
 };
 
 const typeConfig = {
-  security: { icon: Shield, label: 'Security', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
-  quality: { icon: Code, label: 'Quality', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-  performance: { icon: Zap, label: 'Performance', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-  testing: { icon: TestTube, label: 'Testing', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-  dependency: { icon: Package, label: 'Dependency', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+  security:    { icon: Shield,   label: 'Security',    tw: 'text-red-500 bg-red-500/10 border-red-500/20' },
+  quality:     { icon: Code,     label: 'Quality',     tw: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
+  performance: { icon: Zap,      label: 'Performance', tw: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
+  testing:     { icon: TestTube, label: 'Testing',     tw: 'text-violet-500 bg-violet-500/10 border-violet-500/20' },
+  dependency:  { icon: Package,  label: 'Dependency',  tw: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
 };
 
-/* ── Donut Chart ───────────────────────────────────────── */
-function DonutChart({ data, size = 120, thickness = 16 }) {
+/* ── Donut Chart ─────────────────────────────────────── */
+function DonutChart({ data, size = 110, thickness = 14 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
-  if (total === 0) return (
-    <div className="flex items-center justify-center text-gray-300" style={{ width: size, height: size }}>
+  if (!total) return (
+    <div className="flex items-center justify-center text-muted-foreground" style={{ width: size, height: size }}>
       <PieChart className="w-8 h-8 opacity-30" />
     </div>
   );
-
   const radius = (size - thickness) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const circ = 2 * Math.PI * radius;
   let offset = 0;
-
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth={thickness} />
-        {data.map((segment, i) => {
-          if (segment.value === 0) return null;
-          const pct = segment.value / total;
-          const dashLength = Math.max(pct * circumference - 2, 1);
-          const currentOffset = offset;
-          offset += pct * circumference;
-          return (
-            <circle key={i} cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={segment.color} strokeWidth={thickness} strokeDasharray={`${dashLength} ${circumference - dashLength}`} strokeDashoffset={-currentOffset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
-          );
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="currentColor" className="text-border" strokeWidth={thickness} />
+        {data.map((seg, i) => {
+          if (!seg.value) return null;
+          const pct = seg.value / total;
+          const dash = Math.max(pct * circ - 2, 1);
+          const cur = offset;
+          offset += pct * circ;
+          return <circle key={i} cx={size/2} cy={size/2} r={radius} fill="none" stroke={seg.color} strokeWidth={thickness} strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-cur} strokeLinecap="round" className="transition-all duration-1000" />;
         })}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-black text-gray-900">{total}</span>
+        <span className="text-xl font-bold">{total}</span>
       </div>
     </div>
   );
 }
 
-/* ── Issue Card ────────────────────────────────────────── */
-function IssueCard({ issue, onOpenEditor, index }) {
+/* ── Issue Card ──────────────────────────────────────── */
+function IssueCard({ issue, onOpenEditor, index, allIssues = [] }) {
   const [expanded, setExpanded] = useState(false);
-  const [fixing, setFixing] = useState(false);
-  const [fixedCode, setFixedCode] = useState(null);
-  const [error, setError] = useState(null);
+  const [fixing,   setFixing]   = useState(false);
+  const [fixedCode,setFixedCode]= useState(null);
+  const [error,    setError]    = useState(null);
 
-  const TypeIcon = typeConfig[issue.type]?.icon || Code;
-  const tc = typeConfig[issue.type] || typeConfig.quality;
+  const tc = typeConfig[issue.type]  || typeConfig.quality;
   const sc = severityConfig[issue.severity] || severityConfig.low;
+  const TypeIcon = tc.icon;
 
   const handleFix = async () => {
-    setFixing(true);
-    setError(null);
+    setFixing(true); setError(null);
     try {
       const aiKey = localStorage.getItem('synkro_ai_key');
-      const res = await fetch('/api/fix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ issue, fullCode: issue.code, aiKey }) });
+      const res  = await fetch('/api/fix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ issue, fullCode: issue.code, aiKey, allIssues }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFixedCode(data.fixedCode);
-    } catch (err) { setError(err.message); } finally { setFixing(false); }
+    } catch (e) { setError(e.message); } finally { setFixing(false); }
   };
 
   return (
-    <div
-      className="issue-card animate-float-up"
-      style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
-    >
+    <Card className={`overflow-hidden transition-all duration-200 ${expanded ? 'border-primary/50' : 'border-border'} hover:border-primary/30`}>
+      {/* Header row */}
       <div className="p-5 flex items-start gap-4 cursor-pointer select-none group" onClick={() => setExpanded(!expanded)}>
-        <div className={`mt-0.5 p-2.5 rounded-xl ${tc.bg} border ${tc.border} shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-          <TypeIcon className={`h-5 w-5 ${tc.color}`} />
+        <div className={`mt-0.5 p-2.5 rounded-lg border shrink-0 group-hover:scale-110 transition-transform ${tc.tw}`}>
+          <TypeIcon className="h-4.5 w-4.5" />
         </div>
-
-        <div className="flex-1 min-w-0 space-y-2.5">
-          <div className="flex items-start justify-between gap-4">
-            <h4 className="font-bold text-gray-900 leading-snug group-hover:text-indigo-600 transition-colors duration-300">{issue.title}</h4>
-            <div className="shrink-0 p-1.5 rounded-lg bg-white/50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all duration-300 border border-transparent group-hover:border-indigo-100">
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <h4 className="font-semibold leading-snug group-hover:text-primary transition-colors text-sm">{issue.title}</h4>
+            <div className="p-1.5 rounded-md text-muted-foreground group-hover:text-primary transition-colors shrink-0">
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
           </div>
-
           <div className="flex items-center gap-2 flex-wrap">
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${sc.bg}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+            <Badge variant="outline" className={`gap-1.5 px-2.5 py-0.5 border ${sc.tw}`}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.color }} />
               {sc.label}
-            </div>
-            <span className="text-[11px] font-bold text-gray-500 tracking-wider uppercase px-2.5 py-1 bg-white/60 backdrop-blur rounded-full border border-gray-100">{tc.label}</span>
+            </Badge>
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-muted/50 text-muted-foreground">{tc.label}</Badge>
             {issue.file && (
-              <span className="text-xs text-gray-600 flex items-center gap-1.5 bg-white/60 backdrop-blur border border-gray-100 px-2.5 py-1 rounded-full truncate max-w-[200px] sm:max-w-xs font-medium">
-                <FileCode className="h-3 w-3 text-gray-400 shrink-0" />
+              <Badge variant="outline" className="text-[11px] font-medium bg-muted/50 text-muted-foreground flex items-center gap-1 max-w-[200px]">
+                <FileCode className="h-3 w-3 shrink-0" />
                 <span className="truncate">{issue.file}</span>
-                {issue.line && <span className="text-gray-400 shrink-0">:{issue.line}</span>}
-              </span>
+                {issue.line && <span className="shrink-0">:{issue.line}</span>}
+              </Badge>
             )}
           </div>
         </div>
       </div>
 
+      {/* Expanded body */}
       {expanded && (
-        <div className="px-5 sm:px-16 pb-6 border-t border-gray-100/80 space-y-5 bg-gradient-to-b from-gray-50/30 to-transparent animate-slide-up">
-          <div className="pt-5">
-            <h5 className="text-[11px] font-bold mb-2 text-gray-400 uppercase tracking-widest">Description</h5>
-            <p className="text-sm text-gray-700 leading-relaxed bg-white/50 border border-gray-100/50 p-4 rounded-xl">{issue.description}</p>
+        <div className="px-5 sm:px-14 pb-6 space-y-4 border-t border-border bg-muted/10">
+          <div className="pt-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Description</p>
+            <p className="text-sm text-foreground/80 leading-relaxed p-4 rounded-lg bg-background border border-border">{issue.description}</p>
           </div>
 
           {issue.code && (
             <div>
-              <h5 className="text-[11px] font-bold mb-2 text-gray-400 uppercase tracking-widest">Problematic Code</h5>
-              <div className="p-4 rounded-xl bg-[#0f0f14] border border-gray-800/50 overflow-x-auto shadow-inner">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Problematic Code</p>
+              <div className="p-4 rounded-lg bg-[#0a0a0a] border border-border overflow-x-auto">
                 <code className="text-sm font-mono text-gray-300 leading-relaxed block whitespace-pre">{issue.code}</code>
               </div>
             </div>
@@ -153,311 +147,345 @@ function IssueCard({ issue, onOpenEditor, index }) {
 
           {(issue.fix || fixedCode) && (
             <div>
-              <h5 className="text-[11px] font-bold mb-2 flex items-center gap-2 text-emerald-600 uppercase tracking-widest">
+              <p className="text-xs font-semibold text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" /> {fixedCode ? 'AI Generated Fix' : 'Suggested Fix'}
-              </h5>
-              <div className="p-4 rounded-xl bg-[#051f13] border border-emerald-900/30 overflow-x-auto shadow-inner">
-                <code className="text-sm font-mono text-emerald-400 leading-relaxed block whitespace-pre">{fixedCode || issue.fix}</code>
+              </p>
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 overflow-x-auto">
+                <code className="text-sm font-mono text-emerald-600 dark:text-emerald-400 leading-relaxed block whitespace-pre">{fixedCode || issue.fix}</code>
               </div>
             </div>
           )}
 
           {issue.recommendation && (
-            <div className="p-4 rounded-xl bg-white/50 border border-gray-100/50 flex gap-3">
-              <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 flex gap-3">
+              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
-                <h5 className="text-[11px] font-bold text-blue-800 mb-1 uppercase tracking-widest">Recommendation</h5>
-                <p className="text-sm text-blue-700/90 leading-relaxed">{issue.recommendation}</p>
+                <p className="text-xs font-semibold text-primary mb-1 uppercase tracking-widest">Recommendation</p>
+                <p className="text-sm text-primary/80 leading-relaxed">{issue.recommendation}</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="p-4 rounded-xl bg-red-50/80 border border-red-100 text-red-600 text-sm flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /><span>{error}</span>
             </div>
           )}
 
-          <div className="pt-3 flex flex-col sm:flex-row gap-3">
-            <Button onClick={handleFix} disabled={fixing || fixedCode} variant="outline" className="bg-white/60 backdrop-blur border-indigo-200/60 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all">
-              {fixing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Fix...</> : fixedCode ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Fix Generated</> : <><Bot className="mr-2 h-4 w-4" /> AI Auto-Fix</>}
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleFix}
+              disabled={fixing || !!fixedCode}
+              className="font-semibold w-full sm:w-auto"
+            >
+              {fixing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                : fixedCode ? <><CheckCircle2 className="h-4 w-4 mr-2 text-emerald-500" /> Fix Generated</>
+                : <><Bot className="h-4 w-4 mr-2" /> AI Auto-Fix</>}
             </Button>
-            <button onClick={() => onOpenEditor(issue)} className="px-5 py-2.5 rounded-xl btn-gradient flex items-center justify-center text-sm font-semibold text-white">
-              <FileCode className="mr-2 h-4 w-4" /> Open in Workspace
-            </button>
+            <Button
+              onClick={() => onOpenEditor(issue)}
+              className="font-semibold w-full sm:w-auto"
+            >
+              <FileCode className="h-4 w-4 mr-2" /> Open in Workspace
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
-/* ── Results View ──────────────────────────────────────── */
+/* ── Main ResultsView ────────────────────────────────── */
 export function ResultsView({ results, repoUrl }) {
-  const [filter, setFilter] = useState('all');
-  const [severityFilter, setSeverityFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const [report, setReport] = useState(null);
-  const [reportError, setReportError] = useState(null);
-  const [activeWorkspaceIssue, setActiveWorkspaceIssue] = useState(null);
+  const [filter,          setFilter]          = useState('all');
+  const [severityFilter,  setSeverityFilter]  = useState('all');
+  const [searchQuery,     setSearchQuery]     = useState('');
+  const [generatingReport,setGeneratingReport]= useState(false);
+  const [report,          setReport]          = useState(null);
+  const [reportError,     setReportError]     = useState(null);
+  const [activeIssue,     setActiveIssue]     = useState(null);
 
-  const filteredResults = useMemo(() => {
+  const filtered = useMemo(() => {
     if (!results) return [];
-    const query = searchQuery.toLowerCase().trim();
-    return results.filter(issue => {
-      const typeMatch = filter === 'all' || issue.type === filter;
-      const severityMatch = severityFilter === 'all' || issue.severity === severityFilter;
-      let searchMatch = true;
-      if (query) {
-        searchMatch = [issue.title, issue.description, issue.file, issue.code, issue.recommendation]
-          .some(field => field && field.toLowerCase().includes(query));
-      }
-      return typeMatch && severityMatch && searchMatch;
+    const q = searchQuery.toLowerCase().trim();
+    return results.filter(i => {
+      const ok = (filter === 'all' || i.type === filter) && (severityFilter === 'all' || i.severity === severityFilter);
+      if (!ok) return false;
+      if (!q) return true;
+      return [i.title, i.description, i.file, i.code, i.recommendation].some(f => f?.toLowerCase().includes(q));
     });
   }, [results, filter, severityFilter, searchQuery]);
 
   const stats = useMemo(() => {
-    if (!results) return { total: 0, critical: 0, high: 0, medium: 0, low: 0, security: 0, quality: 0, dependencies: 0 };
+    if (!results) return { total:0, critical:0, high:0, medium:0, low:0, security:0, quality:0, dependencies:0 };
     return {
-      total: results.length,
-      critical: results.filter(i => i.severity === 'critical').length,
-      high: results.filter(i => i.severity === 'high').length,
-      medium: results.filter(i => i.severity === 'medium').length,
-      low: results.filter(i => i.severity === 'low').length,
-      security: results.filter(i => i.type === 'security').length,
-      quality: results.filter(i => i.type === 'quality').length,
+      total:        results.length,
+      critical:     results.filter(i => i.severity === 'critical').length,
+      high:         results.filter(i => i.severity === 'high').length,
+      medium:       results.filter(i => i.severity === 'medium').length,
+      low:          results.filter(i => i.severity === 'low').length,
+      security:     results.filter(i => i.type === 'security').length,
+      quality:      results.filter(i => i.type === 'quality').length,
       dependencies: results.filter(i => i.type === 'dependency').length,
     };
   }, [results]);
 
   const severityData = [
-    { name: 'Critical', value: stats.critical, color: '#ef4444' },
-    { name: 'High', value: stats.high, color: '#f97316' },
-    { name: 'Medium', value: stats.medium, color: '#f59e0b' },
-    { name: 'Low', value: stats.low, color: '#3b82f6' },
+    { name:'Critical', value:stats.critical, color:'#ef4444' },
+    { name:'High',     value:stats.high,     color:'#f97316' },
+    { name:'Medium',   value:stats.medium,   color:'#f59e0b' },
+    { name:'Low',      value:stats.low,      color:'#22c55e' },
   ];
-
   const typeData = [
-    { name: 'Security', value: stats.security, color: '#dc2626' },
-    { name: 'Quality', value: stats.quality, color: '#2563eb' },
-    { name: 'Dependencies', value: stats.dependencies, color: '#059669' },
-    { name: 'Other', value: stats.total - stats.security - stats.quality - stats.dependencies, color: '#8b5cf6' },
+    { name:'Security',     value:stats.security,                                                      color:'#ef4444' },
+    { name:'Quality',      value:stats.quality,                                                       color:'#3b82f6' },
+    { name:'Dependencies', value:stats.dependencies,                                                  color:'#10b981' },
+    { name:'Other',        value:stats.total - stats.security - stats.quality - stats.dependencies,   color:'#8b5cf6' },
   ];
 
   const handleGenerateReport = async () => {
-    setGeneratingReport(true);
-    setReportError(null);
+    setGeneratingReport(true); setReportError(null);
     try {
       const aiKey = localStorage.getItem('synkro_ai_key');
-      const res = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ results, aiKey }) });
+      const res  = await fetch('/api/report', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ results, aiKey }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setReport(data.report);
-    } catch (err) { setReportError(err.message); } finally { setGeneratingReport(false); }
+    } catch (e) { setReportError(e.message); } finally { setGeneratingReport(false); }
   };
 
-  const handleDownloadReport = () => {
-    if (!report) return;
-    const blob = new Blob([report], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `synkro-audit-${new Date().toISOString().split('T')[0]}.md`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  const downloadBlob = (content, filename, type) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type }));
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  const handleExportData = () => {
-    if (!results) return;
-    const exportData = {
-      repository: repoUrl,
-      timestamp: new Date().toISOString(),
-      summary: stats,
-      findings: filteredResults
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `synkro-findings-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  };
-
-  if (!results || results.length === 0) {
+  if (!results?.length) {
     return (
       <div className="w-full mt-8 animate-in fade-in">
-        <div className="bg-white rounded-3xl p-16 text-center border border-gray-200 shadow-sm">
-          <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Card className="p-16 text-center border-border">
+          <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="h-12 w-12" />
           </div>
-          <h3 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Immaculate Codebase</h3>
-          <p className="text-gray-500 max-w-md mx-auto text-lg">No vulnerabilities, code quality issues, or dependency risks were detected.</p>
-        </div>
+          <h3 className="text-3xl font-extrabold mb-2">Immaculate Codebase</h3>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">No vulnerabilities, code smells, or dependency risks were detected.</p>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-6">
-      {/* ── Dashboard Cards ── */}
+
+      {/* ── Stat cards ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Severity */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Risk Profile</h3>
-            <div className="space-y-2.5">
-              {severityData.map(s => s.value > 0 && (
-                <div key={s.name} className="flex items-center gap-3 text-sm">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                  <span className="font-semibold text-gray-700">{s.name}</span>
-                  <span className="text-gray-500 font-mono ml-auto">{s.value}</span>
-                </div>
-              ))}
+        {/* Risk profile */}
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Risk Profile</p>
+              <div className="space-y-2.5">
+                {severityData.map(s => s.value > 0 && (
+                  <div key={s.name} className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                    <span className="font-semibold text-muted-foreground">{s.name}</span>
+                    <span className="font-mono text-foreground ml-auto">{s.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <DonutChart data={severityData} size={110} thickness={14} />
-        </div>
+            <DonutChart data={severityData} />
+          </CardContent>
+        </Card>
 
         {/* Categories */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Categories</h3>
-            <div className="space-y-2.5">
-              {typeData.map(t => t.value > 0 && (
-                <div key={t.name} className="flex items-center gap-3 text-sm">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
-                  <span className="font-semibold text-gray-700">{t.name}</span>
-                  <span className="text-gray-500 font-mono ml-auto">{t.value}</span>
-                </div>
-              ))}
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Categories</p>
+              <div className="space-y-2.5">
+                {typeData.map(t => t.value > 0 && (
+                  <div key={t.name} className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 rounded-full" style={{ background: t.color }} />
+                    <span className="font-semibold text-muted-foreground">{t.name}</span>
+                    <span className="font-mono text-foreground ml-auto">{t.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <DonutChart data={typeData} size={110} thickness={14} />
-        </div>
+            <DonutChart data={typeData} />
+          </CardContent>
+        </Card>
 
-        {/* Dependency Status */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex flex-col justify-center hover:shadow-md transition-shadow">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-5">Dependency Audit</h3>
-          {stats.dependencies === 0 ? (
+        {/* Dependency status */}
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-5">Dependency Audit</p>
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-emerald-50 rounded-2xl">
-                <Shield className="w-8 h-8 text-emerald-600" />
+              <div className={`p-4 rounded-xl ${stats.dependencies === 0 ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-destructive/10 border border-destructive/20'}`}>
+                {stats.dependencies === 0
+                  ? <Shield className="w-8 h-8 text-emerald-500" />
+                  : <AlertCircle className="w-8 h-8 text-destructive" />}
               </div>
               <div>
-                <p className="font-bold text-gray-900 text-lg">Verified Safe</p>
-                <p className="text-sm text-gray-500">No malicious packages.</p>
+                <p className={`font-bold text-lg ${stats.dependencies === 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                  {stats.dependencies === 0 ? 'Verified Safe' : `${stats.dependencies} Alerts`}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {stats.dependencies === 0 ? 'No malicious packages.' : 'Vulnerable packages found.'}
+                </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── AI Report ── */}
+      <Card className="relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div>
+              <h3 className="text-xl font-bold flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Executive AI Report
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-lg">Professional security audit summary with risk assessment and remediation plan — powered by Gemini.</p>
+            </div>
+            {!report && (
+              <Button onClick={handleGenerateReport} disabled={generatingReport} className="font-semibold shrink-0">
+                {generatingReport ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing...</> : <><Bot className="h-4 w-4 mr-2" /> Generate Report</>}
+              </Button>
+            )}
+          </div>
+
+          {reportError && (
+            <div className="mt-5 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm flex gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{reportError}
+            </div>
+          )}
+
+          {report && (
+            <div className="mt-6 border-t pt-6 space-y-4 animate-in fade-in">
+              <div className="flex justify-end gap-3 print:hidden">
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="font-semibold text-primary border-primary/30 hover:bg-primary/10">
+                  <Download className="h-4 w-4 mr-2" /> Export PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadBlob(report, `synkro-audit-${new Date().toISOString().split('T')[0]}.md`, 'text/markdown')} className="font-semibold">
+                  <Download className="h-4 w-4 mr-2" /> Download Markdown
+                </Button>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg p-6 overflow-x-auto border bg-muted/20">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Filters ── */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Search */}
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Search</p>
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Search files, code snippets..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
+              <div className="flex flex-wrap gap-2">
+                {['all', ...Object.keys(typeConfig)].map(k => {
+                  const active = filter === k;
+                  const cfg = typeConfig[k];
+                  return (
+                    <Button
+                      key={k}
+                      variant={active ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFilter(k)}
+                    >
+                      {cfg && <cfg.icon className="h-3.5 w-3.5 mr-1.5" />}
+                      {cfg ? cfg.label : 'All'}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Severity */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Severity</p>
+              <div className="flex flex-wrap gap-2">
+                {['all', ...Object.keys(severityConfig)].map(k => {
+                  const active = severityFilter === k;
+                  return (
+                    <Button
+                      key={k}
+                      variant={active ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSeverityFilter(k)}
+                    >
+                      {k === 'all' ? 'All' : severityConfig[k].label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Issues list ── */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between pb-5 mb-5 border-b">
+            <h3 className="font-bold text-xl flex items-center gap-3">
+              Audit Findings
+              <Badge variant="secondary" className="text-sm px-2">
+                {filtered.length}
+              </Badge>
+            </h3>
+            <Button variant="outline" size="sm" onClick={() => downloadBlob(JSON.stringify({ repository: repoUrl, timestamp: new Date().toISOString(), summary: stats, findings: filtered }, null, 2), `synkro-findings-${new Date().toISOString().split('T')[0]}.json`, 'application/json')} className="font-semibold">
+              <Download className="h-4 w-4 mr-2" /> Export JSON
+            </Button>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="py-16 text-center">
+              <Filter className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground font-medium">No issues match your filters.</p>
+              <button onClick={() => { setFilter('all'); setSeverityFilter('all'); setSearchQuery(''); }}
+                className="mt-3 text-primary font-bold hover:underline transition-colors text-sm">
+                Clear all filters
+              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-red-50 rounded-2xl">
-                <AlertCircle className="w-8 h-8 text-red-600" />
-              </div>
-              <div>
-                <p className="font-bold text-red-700 text-lg">{stats.dependencies} Alerts</p>
-                <p className="text-sm text-red-600/80">Vulnerable packages found.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── AI Report (Moved to Top) ── */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200 shadow-sm relative overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-400 opacity-5 blur-3xl rounded-full pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3 mb-2 tracking-tight">
-              <Sparkles className="w-6 h-6 text-blue-500" /> 
-              <span className="text-gradient">Executive AI Report</span>
-            </h3>
-            <p className="text-gray-500 font-medium max-w-2xl">Generate a professional summary of the repository health, risk assessment, and recommended next steps using Gemini AI.</p>
-          </div>
-          {!report && (
-            <button onClick={handleGenerateReport} disabled={generatingReport} className="px-8 py-4 rounded-2xl btn-gradient font-bold flex items-center disabled:opacity-70 transition-all shrink-0">
-              {generatingReport ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analyzing...</> : <><Bot className="mr-3 h-5 w-5" /> Generate Report</>}
-            </button>
-          )}
-        </div>
-
-        {reportError && <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 flex items-start gap-3"><AlertCircle className="w-5 h-5 shrink-0" />{reportError}</div>}
-        
-        {report && (
-          <div className="mt-8 space-y-4 animate-in fade-in border-t border-gray-100 pt-8 relative z-10">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={handleDownloadReport} className="bg-white border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl font-bold h-10 px-5 transition-colors">
-                <Download className="w-4 h-4 mr-2" /> Download Markdown
-              </Button>
-            </div>
-            <div className="prose prose-sm max-w-none bg-[#f8fafc] rounded-2xl p-6 sm:p-8 overflow-x-auto border border-gray-100 shadow-inner prose-headings:text-gray-900 prose-headings:tracking-tight prose-p:text-gray-700 prose-strong:text-gray-800 prose-code:text-indigo-700 prose-code:bg-indigo-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[13px] prose-pre:bg-[#0f0f14] prose-pre:text-gray-300 prose-pre:rounded-xl prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-table:border-collapse prose-th:bg-gray-100 prose-th:text-xs prose-th:uppercase prose-th:tracking-widest prose-th:text-gray-500 prose-td:text-sm prose-td:border-gray-200 prose-li:text-gray-700">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Search & Filters ── */}
-      <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm space-y-6">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1">
-            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 block">Global Search</label>
-            <div className="relative">
-              <SearchIcon className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-              <Input type="text" placeholder="Search files, code snippets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-12 h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm font-medium w-full transition-all" />
-            </div>
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 block">Category</label>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${filter === 'all' ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>All</button>
-              {Object.entries(typeConfig).map(([key, config]) => (
-                <button key={key} onClick={() => setFilter(key)} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${filter === key ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-                  <config.icon className="h-4 w-4" />{config.label}
-                </button>
+            <div className="space-y-4">
+              {filtered.map((issue, i) => (
+                <IssueCard key={`${issue.file}-${i}`} issue={issue} index={i} onOpenEditor={setActiveIssue} allIssues={results} />
               ))}
             </div>
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 block">Severity</label>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setSeverityFilter('all')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${severityFilter === 'all' ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>All</button>
-              {Object.entries(severityConfig).map(([key, config]) => (
-                <button key={key} onClick={() => setSeverityFilter(key)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${severityFilter === key ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>{config.label}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* ── Issues List ── */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-          <h3 className="font-black text-2xl text-gray-900 flex items-center gap-3">
-            Audit Findings
-            <Badge variant="outline" className="text-sm bg-gray-50 border-gray-200 text-gray-700 px-3 py-1 rounded-full font-bold shadow-sm">
-              {filteredResults.length}
-            </Badge>
-          </h3>
-          <Button onClick={handleExportData} variant="outline" className="rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 font-bold h-10 px-5 transition-colors">
-            <Download className="w-4 h-4 mr-2" /> Export JSON
-          </Button>
-        </div>
-
-        {filteredResults.length === 0 ? (
-          <div className="py-16 text-center">
-            <Filter className="h-10 w-10 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg font-medium">No issues match your current filters.</p>
-            <button onClick={() => { setFilter('all'); setSeverityFilter('all'); setSearchQuery(''); }} className="mt-4 text-blue-600 font-bold hover:underline">Clear all filters</button>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {filteredResults.map((issue, index) => (
-              <IssueCard key={`${issue.file}-${index}`} issue={issue} index={index} onOpenEditor={setActiveWorkspaceIssue} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {activeWorkspaceIssue && <EditorWorkspace issue={activeWorkspaceIssue} repoUrl={repoUrl} onClose={() => setActiveWorkspaceIssue(null)} allIssues={results} />}
+      {activeIssue && (
+        <EditorWorkspace issue={activeIssue} repoUrl={repoUrl} onClose={() => setActiveIssue(null)} allIssues={results} />
+      )}
     </div>
   );
 }

@@ -7,11 +7,11 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Loader2, Bot, UploadCloud, X, FileCode, CheckCircle2, 
   AlertCircle, TerminalSquare, FolderGit2, File as FileIcon, 
-  Folder, ChevronRight, ChevronDown 
+  Folder, ChevronRight, ChevronDown, Code, Zap
 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -29,17 +29,21 @@ function FileTreeNode({ node, level, onSelect, activePath }) {
   return (
     <div className="w-full">
       <div 
-        className={`flex items-center py-1.5 px-2 cursor-pointer transition-colors select-none ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        className={`flex items-center py-2 px-3 cursor-pointer transition-all duration-200 select-none rounded-lg mb-0.5 mx-1 ${
+          isActive 
+            ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary shadow-sm border border-primary/10' 
+            : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100'
+        }`}
+        style={{ marginLeft: `${level * 12}px` }}
         onClick={handleClick}
       >
-        <span className="w-4 h-4 flex items-center justify-center mr-1">
+        <span className="w-4 h-4 flex items-center justify-center mr-1.5">
           {isDir ? (isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />) : null}
         </span>
         {isDir ? (
-          <Folder className="w-4 h-4 mr-2 text-indigo-400" />
+          <Folder className={`w-4 h-4 mr-2 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
         ) : (
-          <FileIcon className="w-4 h-4 mr-2 text-gray-400" />
+          <FileIcon className={`w-4 h-4 mr-2 ${isActive ? 'text-primary' : 'text-zinc-500'}`} />
         )}
         <span className={`text-[13px] truncate ${isActive ? 'font-semibold' : 'font-medium'}`}>{node.name}</span>
       </div>
@@ -175,7 +179,7 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
       if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) return;
 
       const terminal = new Terminal({
-        theme: { background: '#ffffff', foreground: '#111827', cursor: '#4f46e5', selectionBackground: '#e0e7ff' },
+        theme: { background: '#09090b', foreground: '#fafafa', cursor: '#3b82f6', selectionBackground: '#3b82f640' },
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 13,
         cursorBlink: true,
@@ -316,43 +320,43 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-gray-50/95 backdrop-blur-2xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-[#050505] animate-in fade-in duration-300">
       {/* Top Header */}
-      <div className="h-16 shrink-0 border-b border-gray-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 shadow-sm">
+      <div className="h-16 shrink-0 border-b border-zinc-800 bg-[#09090b]/80 backdrop-blur-xl flex items-center justify-between px-6 shadow-2xl relative z-10">
         <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100">
-            <FileCode className="h-5 w-5 text-indigo-600" />
+          <div className="p-2.5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl border border-primary/20 shadow-inner">
+            <FileCode className="h-5 w-5 text-primary" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-sm tracking-widest uppercase text-gray-900">Synkro IDE</span>
+            <span className="font-black text-sm tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-400">Synkro IDE</span>
             <div className="flex items-center gap-2 mt-0.5">
-              <Badge variant="outline" className="font-mono text-[10px] py-0 px-2 bg-indigo-50 border-indigo-200 text-indigo-700">
+              <Badge variant="outline" className="font-mono text-[10px] py-0 px-2 bg-zinc-900 border-zinc-700 text-zinc-300">
                 {repoUrl.replace('https://github.com/', '').split('/')[1] || 'repository'}
               </Badge>
-              <span className="text-xs text-gray-500 font-mono truncate max-w-[300px]">{activeFile}</span>
+              <span className="text-xs text-zinc-500 font-mono truncate max-w-[300px]">{activeFile}</span>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-gray-100/80 rounded-xl p-1 border border-gray-200">
+          <div className="flex items-center bg-zinc-900/80 rounded-xl p-1 border border-zinc-800 shadow-inner">
             <Button 
               onClick={handleAIFix} 
               disabled={fixing || loading || !fileContent} 
               variant="ghost"
               size="sm" 
-              className="h-9 hover:bg-indigo-50 text-indigo-600 gap-2 transition-all duration-200 rounded-lg font-bold"
+              className="h-9 text-primary hover:bg-primary/10 hover:text-primary gap-2 transition-all duration-200 rounded-lg font-bold"
             >
               {fixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
               AI Fix
             </Button>
-            <div className="w-px h-5 bg-gray-300 mx-1"></div>
+            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
             <Button 
               onClick={handleCommit} 
               disabled={committing || loading || !fileContent}
               variant="ghost" 
               size="sm" 
-              className="h-9 hover:bg-emerald-50 text-emerald-600 gap-2 transition-all duration-200 rounded-lg font-bold"
+              className="h-9 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 gap-2 transition-all duration-200 rounded-lg font-bold"
             >
               {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
               Push to GitHub
@@ -363,9 +367,9 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
             variant="ghost" 
             size="icon" 
             onClick={onClose} 
-            className="h-10 w-10 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors border border-transparent hover:border-destructive/20"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 text-zinc-400 hover:text-destructive" />
           </Button>
         </div>
       </div>
@@ -374,15 +378,15 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
       <div className="flex-1 flex overflow-hidden">
         <PanelGroup direction="horizontal" className="w-full h-full">
           {/* Left Sidebar (File Tree) */}
-          <Panel defaultSize={20} minSize={15} maxSize={35} className="flex flex-col bg-white border-r border-gray-200">
-            <div className="h-12 shrink-0 border-b border-gray-100 flex items-center justify-between px-5 bg-gray-50/50">
-              <span className="font-bold text-[11px] tracking-widest text-gray-500 uppercase">Explorer</span>
-              <FolderGit2 className="h-4 w-4 text-gray-400" />
+          <Panel defaultSize={20} minSize={15} maxSize={35} className="flex flex-col bg-[#09090b] border-r border-zinc-800">
+            <div className="h-12 shrink-0 border-b border-zinc-800 flex items-center justify-between px-5 bg-zinc-900/30">
+              <span className="font-bold text-[11px] tracking-widest text-zinc-500 uppercase">Explorer</span>
+              <FolderGit2 className="h-4 w-4 text-zinc-600" />
             </div>
             <div className="flex-1 overflow-y-auto py-3 custom-scrollbar">
               {fileTree.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 gap-3 text-gray-400">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                <div className="flex flex-col items-center justify-center h-40 gap-3 text-zinc-600">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   <span className="text-xs font-semibold">Fetching tree...</span>
                 </div>
               ) : (
@@ -394,32 +398,34 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
 
             {/* Issues Found Panel */}
             {Object.keys(issuesByFile).length > 0 && (
-              <div className="shrink-0 border-t border-gray-200 bg-gray-50/50 max-h-[40%] overflow-y-auto">
-                <div className="h-10 sticky top-0 z-10 bg-gray-50 flex items-center justify-between px-5 border-b border-gray-100">
-                  <span className="font-bold text-[11px] tracking-widest text-gray-500 uppercase">Issues Found</span>
-                  <AlertCircle className="h-4 w-4 text-red-400" />
+              <div className="shrink-0 border-t border-zinc-800 bg-zinc-900/30 max-h-[40%] overflow-y-auto">
+                <div className="h-10 sticky top-0 z-10 bg-zinc-900/80 backdrop-blur-sm flex items-center justify-between px-5 border-b border-zinc-800">
+                  <span className="font-bold text-[11px] tracking-widest text-zinc-500 uppercase">Issues Found</span>
+                  <AlertCircle className="h-4 w-4 text-destructive" />
                 </div>
-                <div className="py-2">
+                <div className="py-1">
                   {Object.entries(issuesByFile).map(([file, issues]) => (
                     <button
                       key={file}
                       onClick={() => setActiveFile(file)}
-                      className={`w-full text-left px-4 py-2.5 flex items-start gap-3 hover:bg-white transition-colors ${activeFile === file ? 'bg-white border-l-2 border-red-400' : ''}`}
+                      className={`w-full text-left px-4 py-2.5 flex items-start gap-3 hover:bg-zinc-800/50 transition-all ${
+                        activeFile === file ? 'bg-gradient-to-r from-destructive/10 to-transparent border-l-2 border-destructive' : ''
+                      }`}
                     >
-                      <FileIcon className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                      <FileIcon className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-gray-800 truncate">{file.split('/').pop()}</p>
+                        <p className="text-xs font-bold text-zinc-200 truncate">{file.split('/').pop()}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {issues.slice(0, 3).map((iss, idx) => {
-                            const dotColor = iss.severity === 'critical' ? 'bg-red-500' : iss.severity === 'high' ? 'bg-orange-500' : iss.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500';
+                            const dotColor = iss.severity === 'critical' ? 'bg-destructive' : iss.severity === 'high' ? 'bg-orange-500' : iss.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500';
                             return (
-                              <span key={idx} className="flex items-center gap-1 text-[10px] text-gray-500 bg-gray-100 rounded-md px-1.5 py-0.5">
+                              <span key={idx} className="flex items-center gap-1 text-[10px] text-zinc-400 bg-zinc-800 rounded-md px-1.5 py-0.5 border border-zinc-700/50">
                                 <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
                                 <span className="truncate max-w-[100px]">{iss.title}</span>
                               </span>
                             );
                           })}
-                          {issues.length > 3 && <span className="text-[10px] text-gray-400 px-1">+{issues.length - 3} more</span>}
+                          {issues.length > 3 && <span className="text-[10px] text-zinc-500 px-1">+{issues.length - 3}</span>}
                         </div>
                       </div>
                     </button>
@@ -429,38 +435,40 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
             )}
           </Panel>
 
-          <PanelResizeHandle className="w-1.5 group relative flex items-center justify-center bg-gray-50 transition-all duration-200 hover:bg-indigo-100 cursor-col-resize">
-            <div className="w-[1px] h-full bg-gray-200 group-hover:bg-indigo-300" />
+          <PanelResizeHandle className="w-1.5 group relative flex items-center justify-center bg-[#050505] transition-all duration-200 hover:bg-primary/20 cursor-col-resize">
+            <div className="w-[1px] h-full bg-zinc-800 group-hover:bg-primary/50" />
           </PanelResizeHandle>
 
           {/* Right Area (Editor + Terminal) */}
-          <Panel className="flex flex-col min-w-0 bg-white">
+          <Panel className="flex flex-col min-w-0 bg-[#050505]">
             <PanelGroup direction="vertical">
               {/* Top (Editor) */}
               <Panel defaultSize={75} minSize={30} className="flex flex-col relative">
-                <div className="h-11 shrink-0 border-b border-gray-200 flex items-center bg-gray-50 px-2 gap-2 overflow-x-auto custom-scrollbar">
+                <div className="h-11 shrink-0 border-b border-zinc-800 flex items-center bg-[#09090b] px-2 gap-2 overflow-x-auto custom-scrollbar">
                   {activeFile ? (
-                    <div className="flex items-center gap-2 px-4 h-full border-b-2 border-indigo-600 bg-white text-[13px] font-bold text-indigo-900 shadow-sm">
-                      <FileIcon className="h-4 w-4 text-indigo-500" />
+                    <div className="flex items-center gap-2 px-4 h-full border-t-2 border-primary bg-[#050505] text-[13px] font-bold text-primary shadow-sm">
+                      <FileIcon className="h-4 w-4 text-primary" />
                       <span className="truncate">{activeFile.split('/').pop()}</span>
                     </div>
                   ) : (
-                    <div className="text-[12px] text-gray-500 font-semibold italic px-4">Select a file to start editing</div>
+                    <div className="text-[12px] text-zinc-600 font-semibold italic px-4">Select a file to start editing</div>
                   )}
                 </div>
                 
-                <div className="flex-1 relative">
+                <div className="flex-1 relative bg-[#050505]">
                   {loading && activeFile ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md z-50 gap-4">
-                      <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-                      <span className="text-sm font-bold text-indigo-900 tracking-widest uppercase">Loading File...</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050505]/80 backdrop-blur-xl z-50 gap-4">
+                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                      <span className="text-sm font-bold text-primary tracking-widest uppercase">Loading File...</span>
                     </div>
                   ) : error && !fileContent && activeFile ? (
                     <div className="absolute inset-0 flex items-center justify-center z-10 p-8">
-                      <Card className="bg-red-50 border-red-200 max-w-md text-center p-8">
-                        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-red-700 mb-2">Sync Error</h3>
-                        <p className="text-red-600/80 text-sm">{error}</p>
+                      <Card className="bg-destructive/10 border-destructive/20 max-w-md text-center shadow-2xl">
+                        <CardContent className="p-8">
+                          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                          <h3 className="text-xl font-bold text-destructive mb-2">Sync Error</h3>
+                          <p className="text-destructive/80 text-sm">{error}</p>
+                        </CardContent>
                       </Card>
                     </div>
                   ) : activeFile ? (
@@ -468,14 +476,14 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
                       <Editor
                         height="100%"
                         language={getLanguage(activeFile)}
-                        theme="vs" // Light theme!
+                        theme="vs-dark"
                         value={fileContent}
                         onChange={(val) => setFileContent(val || '')}
                         options={{
                           minimap: { enabled: false },
                           fontSize: 14,
                           fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                          padding: { top: 24, bottom: 24 },
+                          padding: { top: 16, bottom: 16 },
                           smoothScrolling: true,
                           cursorBlink: "smooth",
                           cursorSmoothCaretAnimation: "on",
@@ -491,20 +499,20 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
                       />
                     </div>
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
-                      <div className="p-8 rounded-full bg-white shadow-sm border border-gray-100 mb-6">
-                        <Code className="h-16 w-16 text-gray-300" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 bg-[#050505]">
+                      <div className="p-8 rounded-2xl bg-zinc-900/50 shadow-2xl border border-zinc-800 mb-6 flex items-center justify-center">
+                        <Code className="h-16 w-16 text-zinc-700" />
                       </div>
-                      <p className="text-lg font-black tracking-widest uppercase text-gray-400">Synkro Editor</p>
-                      <p className="text-sm mt-2 font-medium">Select a file from the explorer to begin analysis</p>
+                      <p className="text-lg font-black tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-zinc-500 to-zinc-700">Synkro Editor</p>
+                      <p className="text-sm mt-2 font-medium text-zinc-600">Select a file from the explorer to begin analysis</p>
                     </div>
                   )}
                   
                   {successMsg && (
                     <div className="absolute bottom-6 right-6 z-50 animate-in slide-in-from-bottom-6 duration-300">
-                      <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-xl shadow-emerald-100/50">
-                        <div className="p-1.5 bg-emerald-100 rounded-full">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 shadow-2xl shadow-black">
+                        <div className="p-1.5 bg-emerald-500/20 rounded-full">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                         </div>
                         <span className="text-sm font-bold">{successMsg}</span>
                       </div>
@@ -513,23 +521,23 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
                 </div>
               </Panel>
 
-              <PanelResizeHandle className="h-1.5 group relative flex items-center justify-center bg-gray-50 transition-all duration-200 hover:bg-indigo-100 cursor-row-resize">
-                <div className="h-[1px] w-full bg-gray-200 group-hover:bg-indigo-300" />
+              <PanelResizeHandle className="h-1.5 group relative flex items-center justify-center bg-[#050505] transition-all duration-200 hover:bg-primary/20 cursor-row-resize">
+                <div className="h-[1px] w-full bg-zinc-800 group-hover:bg-primary/50" />
               </PanelResizeHandle>
 
               {/* Bottom (Terminal) */}
-              <Panel defaultSize={25} minSize={10} className="flex flex-col bg-white border-t border-gray-200">
-                <div className="h-10 shrink-0 flex items-center justify-between px-5 bg-gray-50 border-b border-gray-200">
+              <Panel defaultSize={25} minSize={10} className="flex flex-col bg-[#09090b] border-t border-zinc-800">
+                <div className="h-10 shrink-0 flex items-center justify-between px-5 bg-zinc-900/50 border-b border-zinc-800">
                   <div className="flex items-center gap-2.5">
-                    <TerminalSquare className="h-4 w-4 text-indigo-600" />
-                    <span className="font-bold text-[11px] tracking-widest text-gray-600 uppercase">Synkro Shell</span>
+                    <TerminalSquare className="h-4 w-4 text-primary" />
+                    <span className="font-bold text-[11px] tracking-widest text-zinc-400 uppercase">Synkro Shell</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-mono text-emerald-600 font-bold uppercase tracking-wider">Node Active</span>
+                    <span className="text-[10px] font-mono text-emerald-500 font-bold uppercase tracking-wider">Node Active</span>
                   </div>
                 </div>
-                <div className="flex-1 relative p-4 overflow-hidden bg-white" ref={(el) => { termRef.current = el; if (el && !termMounted) setTermMounted(true); }}></div>
+                <div className="flex-1 relative p-4 overflow-hidden bg-[#050505]" ref={(el) => { termRef.current = el; if (el && !termMounted) setTermMounted(true); }}></div>
               </Panel>
             </PanelGroup>
           </Panel>
