@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
@@ -15,7 +16,7 @@ export async function POST(request) {
     if (!cwd && repoUrl) {
       // Create a unique temp directory for this repo
       const repoName = repoUrl.split('/').pop().replace('.git', '');
-      const uniqueId = Math.random().toString(36).substring(7);
+      const uniqueId = crypto.randomBytes(4).toString('hex');
       cwd = path.join(os.tmpdir(), `synkro-${repoName}-${uniqueId}`);
       
       if (!fs.existsSync(cwd)) {
@@ -27,7 +28,13 @@ export async function POST(request) {
       return NextResponse.json({ cwd, output: '\x1b[1;32mSynkro Terminal initialized.\x1b[0m\r\n' });
     }
 
-    // Dangerous in production, but okay for local dev demonstration
+    const ALLOWED_COMMANDS = ['npm', 'node', 'git', 'ls', 'dir', 'echo', 'pwd', 'cat', 'type', 'npx'];
+    const baseCmd = command.trim().split(' ')[0].toLowerCase();
+    if (!ALLOWED_COMMANDS.includes(baseCmd)) {
+      return NextResponse.json({ cwd, output: `\x1b[31mError: Command '${baseCmd}' is not allowed for security reasons.\x1b[0m\r\n` });
+    }
+
+    // Execution with safe whitelist
     try {
       const { stdout, stderr } = await execAsync(command, { cwd, timeout: 10000 });
       return NextResponse.json({ cwd, output: stdout + (stderr ? '\r\n\x1b[31m' + stderr + '\x1b[0m' : '') });

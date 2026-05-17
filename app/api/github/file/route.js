@@ -10,8 +10,12 @@ export async function GET(request) {
     return NextResponse.json({ error: 'repoUrl and path are required' }, { status: 400 });
   }
 
-  const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
+  const match = repoUrl.match(/^https?:\/\/github\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_.-]+)\/?$/);
   if (!match) return NextResponse.json({ error: 'Invalid repo URL' }, { status: 400 });
+
+  if (path.includes('..') || path.startsWith('/')) {
+    return NextResponse.json({ error: 'Invalid path to prevent directory traversal' }, { status: 400 });
+  }
 
   const owner = match[1];
   const repo = match[2];
@@ -58,8 +62,12 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'GitHub Token required to push code' }, { status: 401 });
     }
 
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
+    const match = repoUrl.match(/^https?:\/\/github\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_.-]+)\/?$/);
     if (!match) return NextResponse.json({ error: 'Invalid repo URL' }, { status: 400 });
+
+    if (path.includes('..') || path.startsWith('/')) {
+      return NextResponse.json({ error: 'Invalid path to prevent directory traversal' }, { status: 400 });
+    }
 
     const owner = match[1];
     const repo = match[2];

@@ -9,6 +9,7 @@ import {
 import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -389,7 +390,14 @@ export function ResultsView({ results, repoUrl }) {
                 </Button>
               </div>
               <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg p-6 overflow-x-auto border bg-muted/20">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Example of further controlling what gets rendered if needed
+                  }}
+                >
+                  {DOMPurify.sanitize(report, { USE_PROFILES: { html: true } })}
+                </ReactMarkdown>
               </div>
             </div>
           )}

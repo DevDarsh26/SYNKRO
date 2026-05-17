@@ -138,7 +138,9 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
               if (a.type === b.type) return a.name.localeCompare(b.name);
               return a.type === 'tree' ? -1 : 1;
             });
-            node.children.forEach(sortTree);
+            for (const child of node.children) {
+              sortTree(child);
+            }
           }
         };
         sortTree(root);

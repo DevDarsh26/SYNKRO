@@ -3,6 +3,7 @@ import { cloneRepository, getRepositoryFiles, readFileContent, cleanupRepository
 import { analyzeFileStatic, analyzePackageJson } from '@/lib/analyzers/static';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 import { generateAdditionalIssues } from '@/lib/gemini/client';
+import crypto from 'crypto';
 
 // Shared scan results store
 if (!globalThis.__scanResults) {
@@ -46,8 +47,8 @@ export async function POST(request) {
       );
     }
 
-    // Generate scan ID
-    const scanId = `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate scan ID using a cryptographically secure random number to mitigate IDOR
+    const scanId = `scan_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
 
     // Initialize scan status
     scanResults.set(scanId, {
@@ -156,43 +157,50 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
 
-    // Optional: AI Deep Analysis for Architectural Issues
-    try {
-      scanResults.set(scanId, {
-        ...scanResults.get(scanId),
-        progress: 96,
-        message: 'Running AI deep architectural analysis...',
-      });
-      
-      const aiIssues = await generateAdditionalIssues(filesToScan, unique, aiKey);
-      if (aiIssues && aiIssues.length > 0) {
-        // Filter out repeats
-        for (const aiIssue of aiIssues) {
-          const key = `${aiIssue.file}:${aiIssue.line}:${aiIssue.title}`;
-          if (!seen.has(key)) {
-            unique.push(aiIssue);
-            seen.add(key);
-          }
-        }
-        unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
-      }
-    } catch (err) {
-      console.warn('AI analysis step failed or skipped:', err.message);
-    }
-
-    // Scan complete
+    // Scan complete (Static part)
     scanResults.set(scanId, {
       status: 'completed',
       progress: 100,
-      message: `Scan completed. Found ${unique.length} issues in ${processedFiles} files.`,
-      results: unique,
+      message: `Static scan completed. Found ${unique.length} issues in ${processedFiles} files. Running AI deep scan in background...`,
+      results: [...unique],
       repository: { owner, repo },
       totalFiles: filesToScan.length,
       completedAt: new Date().toISOString(),
     });
 
-    // Cleanup
-    await cleanupRepository(repoPath);
+    // Run AI in background asynchronously without blocking the UI
+    (async () => {
+      try {
+        const aiIssues = await generateAdditionalIssues(filesToScan, unique, aiKey);
+        if (aiIssues && aiIssues.length > 0) {
+          const currentResult = scanResults.get(scanId);
+          if (!currentResult) return;
+          
+          let aiAdded = 0;
+          for (const aiIssue of aiIssues) {
+            const key = `${aiIssue.file}:${aiIssue.line}:${aiIssue.title}`;
+            if (!seen.has(key)) {
+              unique.push(aiIssue);
+              seen.add(key);
+              aiAdded++;
+            }
+          }
+          if (aiAdded > 0) {
+            unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
+            scanResults.set(scanId, {
+              ...currentResult,
+              results: [...unique],
+              message: `Scan completed. Found ${unique.length} issues (including ${aiAdded} AI findings).`,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('AI analysis step failed or skipped:', err.message);
+      } finally {
+        await cleanupRepository(repoPath);
+      }
+    })();
+
   } catch (error) {
     console.error('Scan error:', error);
 
