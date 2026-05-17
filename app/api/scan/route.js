@@ -84,8 +84,8 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
 
   try {
     // Clone repository
-    const { path: clonedPath, owner, repo } = await cloneRepository(repoUrl, githubToken);
-    repoPath = clonedPath;
+    const { owner, repo, branch } = await cloneRepository(repoUrl, githubToken);
+    repoPath = `${owner}/${repo}`;
 
     scanResults.set(scanId, {
       status: 'scanning',
@@ -96,7 +96,7 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
     });
 
     // Get all code files
-    const files = await getRepositoryFiles(clonedPath);
+    const files = await getRepositoryFiles(owner, repo, branch, githubToken);
 
     // Cap at 150 files for performance (up from 100)
     const filesToScan = files.slice(0, 150);
@@ -119,7 +119,7 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
       await Promise.all(
         batch.map(async (file) => {
           try {
-            const content = await readFileContent(file.fullPath);
+            const content = await readFileContent(owner, repo, file.path, githubToken);
             if (content && content.length < 100000) {
               let issues;
               if (file.name === 'package.json') {
