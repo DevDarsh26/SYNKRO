@@ -1,4 +1,4 @@
-# Synkro - AI-Powered Code Security Scanner
+# Synkro - AI-Powered Code Security Scanner  
 
 A Next.js web application that scans GitHub repositories for security vulnerabilities, code quality issues, performance problems, and testing gaps using IBM Watsonx AI.
 
