@@ -7,6 +7,9 @@ import { db, isConfigured } from '@/config/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('history');
 
 export function RecentScans({ onSelectScan }) {
   const [history, setHistory] = useState([]);
@@ -29,11 +32,11 @@ export function RecentScans({ onSelectScan }) {
           } catch (fsError) {
             // Ignore offline and permissions errors as we already have local storage loaded
             if (!fsError.message?.includes('offline') && !fsError.message?.includes('permissions')) {
-              console.error('Failed to sync history from firestore', fsError);
+              logger.error('Failed to sync history from firestore', fsError);
             }
           }
         }
-      } catch (e) { console.error('Failed to load history', e); }
+      } catch (e) { logger.error('Failed to load history', e); }
     };
     load();
     window.addEventListener('focus', load);
@@ -46,7 +49,7 @@ export function RecentScans({ onSelectScan }) {
     if (user && !user.isGuest && isConfigured && db) {
       try {
         await updateDoc(doc(db, 'users', user.uid), { recentScans: [] });
-      } catch (e) { console.error('Failed to clear firestore', e); }
+      } catch (e) { logger.error('Failed to clear firestore', e); }
     }
   };
 
@@ -143,9 +146,9 @@ export async function saveScanToHistory(repoUrl, results, user) {
         await setDoc(userRef, { recentScans: history }, { merge: true });
       } catch (fsError) {
         if (!fsError.message?.includes('offline') && !fsError.message?.includes('permissions')) {
-          console.error('Failed to save to firestore', fsError);
+          logger.error('Failed to save to firestore', fsError);
         }
       }
     }
-  } catch (e) { console.error('Failed to save scan history', e); }
+  } catch (e) { logger.error('Failed to save scan history', e); }
 }

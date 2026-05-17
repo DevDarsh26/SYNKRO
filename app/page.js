@@ -78,7 +78,7 @@ export default function LandingPage() {
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             SYNKRO scans your entire GitHub repository — public or private — for security
-            vulnerabilities, code smells, and unsafe dependencies. Then AI fixes them for you.
+            vulnerabilities, code smells, and unsafe dependencies. Then AI (Powered by WatsonX & Gemini) fixes them for you.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -129,7 +129,7 @@ export default function LandingPage() {
                 { t: '⚠', c: 'text-red-400',   msg: '[CRITICAL] SQL Injection — /api/users.js:47' },
                 { t: '⚠', c: 'text-orange-400', msg: '[HIGH] Hardcoded secret — /config/db.js:12' },
                 { t: '⚠', c: 'text-yellow-400', msg: '[MEDIUM] Unpinned dependency — lodash@^4.0.0' },
-                { t: '✦', c: 'text-purple-400', msg: 'Gemini AI generating fixes...' },
+                { t: '✦', c: 'text-purple-400', msg: 'WatsonX & Gemini AI generating fixes...' },
                 { t: '✓', c: 'text-green-400', msg: 'Scan complete · 23 issues · 3 auto-fixed' },
               ].map((line, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -185,7 +185,7 @@ export default function LandingPage() {
             <StepCard number="2" title="Deep Scan"
               description="Our engine runs static AST analysis + OSV lookups across your codebase." />
             <StepCard number="3" title="AI Auto-Fix"
-              description="Review findings in a beautiful IDE and let Gemini write the secure fix." />
+              description="Review findings in a beautiful IDE and let WatsonX or Gemini write the secure fix." />
           </div>
         </div>
       </main>

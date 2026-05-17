@@ -35,8 +35,8 @@ A Next.js web application that scans GitHub repositories for security vulnerabil
 - **UI Components**: shadcn/ui
 - **Authentication**: Firebase Auth
 - **Database**: Firebase Firestore
-- **AI Analysis**: IBM Watsonx AI
-- **GitHub Integration**: Octokit, simple-git
+- **AI Analysis**: IBM Watsonx AI & Google Gemini AI
+- **GitHub Integration**: GitHub REST API (No local git binary required)
 
 ## Setup Instructions
 
@@ -70,6 +70,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 WATSONX_API_KEY=your_watsonx_api_key
 WATSONX_PROJECT_ID=your_watsonx_project_id
 WATSONX_URL=https://us-south.ml.cloud.ibm.com
+
+# Gemini AI Configuration
+GEMINI_API_KEY=your_gemini_api_key
 
 # Application Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -154,9 +157,12 @@ synkro/
 │   └── ui/                    # shadcn/ui components
 ├── lib/
 │   ├── github/
-│   │   └── clone.js           # GitHub repo cloning
+│   │   └── clone.js           # GitHub API integration (tree/contents fetch)
 │   ├── watsonx/
 │   │   └── client.js          # IBM Watsonx AI client
+│   ├── gemini/
+│   │   └── client.js          # Google Gemini AI client
+│   ├── logger.js              # Structured logging utility
 │   └── utils.js               # Utility functions
 ├── config/
 │   └── firebase.js            # Firebase configuration

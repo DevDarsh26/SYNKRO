@@ -15,7 +15,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('dashboard');
 
 /* ── Animated Scan Progress ──────────────────────────────── */
 function ScanProgressCard({ scanStatus }) {
@@ -128,7 +132,7 @@ function DashboardContent() {
           setScanStatus(data);
         }
       } catch (err) {
-        console.error('Scan poll error:', err);
+        logger.error('Scan poll error', err);
       }
     }, 500);
 
@@ -228,7 +232,7 @@ function DashboardContent() {
             <div className="text-center space-y-4 max-w-2xl">
               <Badge variant="secondary" className="px-3 py-1 text-xs">
                 <Zap className="w-3.5 h-3.5 mr-1.5" />
-                Powered by Gemini AI
+                Powered by WatsonX & Gemini AI
               </Badge>
               <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
                 New Security Scan

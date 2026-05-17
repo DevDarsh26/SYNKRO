@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('repos');
 
 /**
  * GET /api/github/repos
@@ -70,7 +73,7 @@ export async function GET(request) {
 
     return NextResponse.json({ repos: shaped, total: shaped.length }, { headers: rateLimitHeaders(rl) });
   } catch (error) {
-    console.error('GitHub repos fetch error:', error);
+    logger.error('GitHub repos fetch error', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch repositories' }, { status: 500 });
   }
 }

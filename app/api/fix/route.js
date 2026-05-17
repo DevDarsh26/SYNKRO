@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 import { generateCodeFix, generateFullFileFix, generateScanReport } from '@/lib/gemini/client';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('fix');
 
 /**
  * POST /api/fix
@@ -35,7 +38,7 @@ export async function POST(request) {
       { headers: rateLimitHeaders(rl) }
     );
   } catch (error) {
-    console.error('Fix generation error:', error);
+    logger.error('Fix generation error', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate fix' },
       { status: 500 }

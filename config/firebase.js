@@ -23,8 +23,8 @@ if (isConfigured) {
   db = getFirestore(app);
 } else {
   // Provide mock objects for development without Firebase
-  console.warn('⚠️ Firebase is not configured. Please set up your environment variables.');
-  console.warn('📝 Copy .env.example to .env.local and add your Firebase credentials.');
+  logger.warn('Firebase is not configured. Please set up your environment variables.');
+  logger.warn('Copy .env.example to .env.local and add your Firebase credentials.');
   
   app = null;
   auth = null;
