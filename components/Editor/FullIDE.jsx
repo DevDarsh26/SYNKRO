@@ -11,8 +11,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Loader2, Bot, UploadCloud, X, FileCode, CheckCircle2, 
   AlertCircle, TerminalSquare, FolderGit2, File as FileIcon, 
-  Folder, ChevronRight, ChevronDown, Code, Zap
+  Folder, ChevronRight, ChevronDown, Code, Zap, GitBranch,
+  Settings, Wand2, Save, ExternalLink, Eye, EyeOff, Key, ShieldCheck
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 // --- Recursive File Tree Node ---
@@ -68,9 +70,14 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
   const [error, setError] = useState(null);
   
   const [fixing, setFixing] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
+  const [fixAllProgress, setFixAllProgress] = useState('');
   const [committing, setCommitting] = useState(false);
   const [commitMessage, setCommitMessage] = useState(`Fix security issue in ${activeFile}`);
   const [successMsg, setSuccessMsg] = useState('');
+  const [showPatPopup, setShowPatPopup] = useState(false);
+  const [patInput, setPatInput] = useState('');
+  const [showPatValue, setShowPatValue] = useState(false);
 
   const termCwdRef = useRef('');
   const repoUrlRef = useRef(repoUrl);
@@ -81,11 +88,11 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
   // Group issues by file for the sidebar
   const issuesByFile = useMemo(() => {
     const map = {};
-    allIssues.forEach(i => {
-      if (!i.file) return;
+    for (const i of allIssues) {
+      if (!i.file) continue;
       if (!map[i.file]) map[i.file] = [];
       map[i.file].push(i);
-    });
+    }
     return map;
   }, [allIssues]);
 
@@ -105,10 +112,11 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
         if (!res.ok) throw new Error(data.error);
 
         const root = { name: 'root', type: 'tree', children: [], path: '' };
-        data.tree.forEach(item => {
+        for (const item of data.tree) {
           const parts = item.path.split('/');
           let current = root;
-          parts.forEach((part, i) => {
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
             const isLast = i === parts.length - 1;
             let existing = current.children.find(c => c.name === part);
             if (!existing) {
@@ -121,8 +129,8 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
               current.children.push(existing);
             }
             current = existing;
-          });
-        });
+          }
+        }
 
         const sortTree = (node) => {
           if (node.children) {
@@ -266,13 +274,16 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
     setFixing(true);
     setError(null);
     try {
+      const aiKey = localStorage.getItem('synkro_ai_key') || '';
       const res = await fetch('/api/fix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           issue: { title: 'Auto-Fix', description: `Fix file ${activeFile}`, file: activeFile }, 
           fullCode: fileContent,
-          mode: 'full'
+          mode: 'full',
+          customKey: aiKey || undefined,
+          allIssues: issuesByFile[activeFile] || []
         })
       });
       const data = await res.json();
@@ -283,6 +294,71 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
       setError(err.message);
     } finally {
       setFixing(false);
+    }
+  };
+
+  const handleFixAll = async () => {
+    const filesToFix = Object.keys(issuesByFile);
+    if (filesToFix.length === 0) { setError('No issues to fix.'); return; }
+    setFixingAll(true);
+    setError(null);
+    try {
+      const aiKey = localStorage.getItem('synkro_ai_key') || '';
+      for (const [idx, filePath] of filesToFix.entries()) {
+        setFixAllProgress(`Fixing ${idx + 1}/${filesToFix.length}: ${filePath.split('/').pop()}`);
+        setActiveFile(filePath);
+        // Fetch the file
+        const token = localStorage.getItem('synkro_github_token') || '';
+        const fileRes = await fetch(`/api/github/file?repoUrl=${encodeURIComponent(repoUrl)}&path=${encodeURIComponent(filePath)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const fileData = await fileRes.json();
+        if (!fileRes.ok) continue;
+        // Fix it
+        const fixRes = await fetch('/api/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            issue: { title: 'Fix All Issues', description: `Fix all issues in ${filePath}`, file: filePath },
+            fullCode: fileData.content,
+            mode: 'full',
+            customKey: aiKey || undefined,
+            allIssues: issuesByFile[filePath]
+          })
+        });
+        const fixData = await fixRes.json();
+        if (fixRes.ok) {
+          setFileContent(fixData.fixedCode);
+          setSha(fileData.sha);
+        }
+      }
+      setSuccessMsg(`Fixed all ${filesToFix.length} files with AI!`);
+      setFixAllProgress('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setFixingAll(false);
+      setFixAllProgress('');
+    }
+  };
+
+  const handleSaveAndPush = () => {
+    const token = localStorage.getItem('synkro_github_token');
+    if (!token) {
+      setPatInput('');
+      setShowPatPopup(true);
+      return;
+    }
+    handleCommit();
+  };
+
+  const handlePatSave = () => {
+    if (patInput.trim()) {
+      localStorage.setItem('synkro_github_token', patInput.trim());
+      setShowPatPopup(false);
+      setPatInput('');
+      // Now proceed with commit
+      handleCommit();
     }
   };
 
@@ -340,26 +416,43 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
         
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-zinc-900/80 rounded-xl p-1 border border-zinc-800 shadow-inner">
+            {/* Fix Current File with AI */}
             <Button 
               onClick={handleAIFix} 
-              disabled={fixing || loading || !fileContent} 
-              variant="ghost"
+              disabled={fixing || fixingAll || loading || !fileContent} 
               size="sm" 
-              className="h-9 text-primary hover:bg-primary/10 hover:text-primary gap-2 transition-all duration-200 rounded-lg font-bold"
+              className="relative overflow-hidden h-9 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground gap-2 transition-all duration-500 rounded-lg font-bold shadow-[0_0_15px_hsl(var(--primary)/0.2)] hover:shadow-[0_0_25px_hsl(var(--primary)/0.5)] group"
             >
-              {fixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
-              AI Fix
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
+              {fixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
+              <span className="relative z-10">{fixing ? 'Fixing...' : 'Fix with AI'}</span>
             </Button>
+            
             <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+            
+            {/* Fix ALL Files with AI */}
             <Button 
-              onClick={handleCommit} 
-              disabled={committing || loading || !fileContent}
-              variant="ghost" 
+              onClick={handleFixAll} 
+              disabled={fixing || fixingAll || loading || Object.keys(issuesByFile).length === 0}
               size="sm" 
-              className="h-9 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 gap-2 transition-all duration-200 rounded-lg font-bold"
+              className="relative overflow-hidden h-9 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500 hover:text-white gap-2 transition-all duration-500 rounded-lg font-bold group"
             >
-              {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-              Push to GitHub
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
+              {fixingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
+              <span className="relative z-10">{fixingAll ? fixAllProgress || 'Fixing All...' : 'Fix All with AI'}</span>
+            </Button>
+
+            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+
+            {/* Save & Push */}
+            <Button 
+              onClick={handleSaveAndPush} 
+              disabled={committing || loading || !fileContent}
+              size="sm" 
+              className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white gap-2 transition-all duration-500 rounded-lg font-bold group"
+            >
+              {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
+              {committing ? 'Pushing...' : 'Save & Push'}
             </Button>
           </div>
 
@@ -508,6 +601,23 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
                     </div>
                   )}
                   
+                  {error && fileContent && (
+                    <div className="absolute top-6 right-6 z-50 animate-in slide-in-from-top-6 duration-300 max-w-sm">
+                      <div className="flex items-start gap-3 px-5 py-4 rounded-xl bg-destructive/10 border border-destructive/40 text-destructive shadow-2xl shadow-black backdrop-blur-xl">
+                        <div className="p-1.5 bg-destructive/20 rounded-full shrink-0 mt-0.5">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                        </div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-sm font-bold truncate">Action Failed</span>
+                          <span className="text-xs font-medium text-destructive/90 break-words mt-0.5 leading-relaxed">{error}</span>
+                        </div>
+                        <button onClick={() => setError(null)} className="shrink-0 p-1 rounded-md text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {successMsg && (
                     <div className="absolute bottom-6 right-6 z-50 animate-in slide-in-from-bottom-6 duration-300">
                       <div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 shadow-2xl shadow-black">
@@ -543,6 +653,88 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
           </Panel>
         </PanelGroup>
       </div>
+
+      {/* ── GitHub PAT Configuration Popup ── */}
+      {showPatPopup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowPatPopup(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md animate-in zoom-in-95 duration-200 bg-[#0a0a0c] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Top accent */}
+            <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-primary to-emerald-500" />
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <GitBranch className="h-5 w-5 text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">GitHub Token Required</h2>
+                  <p className="text-xs text-zinc-400 font-medium">Configure your PAT to push code changes</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowPatPopup(false)} className="rounded-full hover:bg-zinc-800">
+                <X className="h-4 w-4 text-zinc-400" />
+              </Button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <p className="text-xs text-amber-300/80 leading-relaxed">
+                  <AlertCircle className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />
+                  A GitHub Personal Access Token with <code className="text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">repo</code> scope is required to save and push code changes.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-primary transition-colors pointer-events-none" />
+                <Input
+                  type={showPatValue ? 'text' : 'password'}
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={patInput}
+                  onChange={e => setPatInput(e.target.value)}
+                  className="pl-9 pr-12 font-mono h-10 bg-zinc-900 border-zinc-700 text-white"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPatValue(!showPatValue)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-zinc-500 hover:text-white transition-colors"
+                >
+                  {showPatValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* How-to */}
+              <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">How to get a token</h4>
+                <ol className="text-xs text-zinc-400 space-y-1 list-decimal list-inside font-medium">
+                  <li>
+                    Go to{' '}
+                    <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer" className="text-primary hover:underline underline-offset-2 inline-flex items-center gap-1">
+                      GitHub Settings → Tokens <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </li>
+                  <li>Click <span className="font-semibold text-white">Generate new token (classic)</span></li>
+                  <li>Check the <code className="text-primary bg-primary/10 px-1 py-0.5 rounded">repo</code> scope</li>
+                  <li>Copy and paste the token above</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 bg-zinc-900/30">
+              <Button variant="outline" onClick={() => setShowPatPopup(false)} className="font-semibold border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                Cancel
+              </Button>
+              <Button onClick={handlePatSave} disabled={!patInput.trim()} className="font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">
+                <ShieldCheck className="h-4 w-4 mr-2" /> Save & Push
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

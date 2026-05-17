@@ -146,10 +146,15 @@ function DashboardContent() {
     setRepoUrl(url);
     try {
       const storedToken = localStorage.getItem('synkro_github_token');
+      const aiKey = localStorage.getItem('synkro_ai_key');
       const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: url, githubToken: storedToken?.trim() || undefined }),
+        body: JSON.stringify({ 
+          repoUrl: url, 
+          githubToken: storedToken?.trim() || undefined,
+          aiKey: aiKey?.trim() || undefined
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start scan');

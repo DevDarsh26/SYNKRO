@@ -12,6 +12,7 @@
     "@google/genai": "^2.3.0",
     "@ibm-cloud/watsonx-ai": "^1.7.12",
     "@monaco-editor/react": "^4.7.0",
+    "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/typography": "^0.5.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

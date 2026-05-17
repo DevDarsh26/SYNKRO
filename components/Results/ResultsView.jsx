@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import {
   Shield, Code, Zap, TestTube, Package, ChevronDown, ChevronUp,
   FileCode, CheckCircle2, Filter, Sparkles, Loader2, Bot, AlertCircle,
-  Search as SearchIcon, Download, PieChart, Info
+  Search as SearchIcon, Download, PieChart, Info, Copy
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
@@ -205,6 +205,13 @@ export function ResultsView({ results, repoUrl }) {
   const [report,          setReport]          = useState(null);
   const [reportError,     setReportError]     = useState(null);
   const [activeIssue,     setActiveIssue]     = useState(null);
+  const [copied,          setCopied]          = useState(false);
+
+  const handleCopyReport = () => {
+    navigator.clipboard.writeText(report);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const filtered = useMemo(() => {
     if (!results) return [];
@@ -370,6 +377,10 @@ export function ResultsView({ results, repoUrl }) {
           {report && (
             <div className="mt-6 border-t pt-6 space-y-4 animate-in fade-in">
               <div className="flex justify-end gap-3 print:hidden">
+                <Button variant="outline" size="sm" onClick={handleCopyReport} className="font-semibold">
+                  {copied ? <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-500" /> : <Copy className="h-4 w-4 mr-2" />}
+                  {copied ? <span className="text-emerald-500">Copied!</span> : 'Copy Report'}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => window.print()} className="font-semibold text-primary border-primary/30 hover:bg-primary/10">
                   <Download className="h-4 w-4 mr-2" /> Export PDF
                 </Button>

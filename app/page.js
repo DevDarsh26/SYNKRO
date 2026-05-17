@@ -70,11 +70,6 @@ export default function LandingPage() {
       <main className="pt-24 pb-20 px-6">
         <div className="max-w-5xl mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
-          <Badge variant="secondary" className="px-3 py-1 text-xs">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            Powered by Gemini AI · GitHub Native
-          </Badge>
-
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
             Ship code that's
             <br className="hidden md:block" />

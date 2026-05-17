@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cloneRepository, getRepositoryFiles, readFileContent, cleanupRepository } from '@/lib/github/clone';
 import { analyzeFileStatic, analyzePackageJson } from '@/lib/analyzers/static';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
+import { generateAdditionalIssues } from '@/lib/gemini/client';
 
 // Shared scan results store
 if (!globalThis.__scanResults) {
@@ -36,7 +37,7 @@ export async function POST(request) {
 
   try {
     pruneOldScans();
-    const { repoUrl, githubToken } = await request.json();
+    const { repoUrl, githubToken, aiKey } = await request.json();
 
     if (!repoUrl) {
       return NextResponse.json(
@@ -57,7 +58,7 @@ export async function POST(request) {
     });
 
     // Start scanning in background (don't await)
-    scanRepository(scanId, repoUrl, githubToken).catch((err) => {
+    scanRepository(scanId, repoUrl, githubToken, aiKey).catch((err) => {
       console.error('Background scan error:', err);
     });
 
@@ -74,7 +75,7 @@ export async function POST(request) {
   }
 }
 
-async function scanRepository(scanId, repoUrl, githubToken) {
+async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
   let repoPath = null;
 
   try {
@@ -154,6 +155,30 @@ async function scanRepository(scanId, repoUrl, githubToken) {
     // Sort by severity
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
+
+    // Optional: AI Deep Analysis for Architectural Issues
+    try {
+      scanResults.set(scanId, {
+        ...scanResults.get(scanId),
+        progress: 96,
+        message: 'Running AI deep architectural analysis...',
+      });
+      
+      const aiIssues = await generateAdditionalIssues(filesToScan, unique, aiKey);
+      if (aiIssues && aiIssues.length > 0) {
+        // Filter out repeats
+        for (const aiIssue of aiIssues) {
+          const key = `${aiIssue.file}:${aiIssue.line}:${aiIssue.title}`;
+          if (!seen.has(key)) {
+            unique.push(aiIssue);
+            seen.add(key);
+          }
+        }
+        unique.sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
+      }
+    } catch (err) {
+      console.warn('AI analysis step failed or skipped:', err.message);
+    }
 
     // Scan complete
     scanResults.set(scanId, {
