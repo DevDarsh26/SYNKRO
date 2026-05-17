@@ -42,7 +42,6 @@
   },
   "overrides": {
     "dompurify": "^3.4.3",
-    "postcss": "^8.5.14",
-    "fetch-blob": "^4.0.0"
+    "postcss": "^8.5.14"
   }
 }
