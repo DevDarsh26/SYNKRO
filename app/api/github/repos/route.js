@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 import { createLogger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const logger = createLogger('repos');
 
 /**

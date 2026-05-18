@@ -6,6 +6,8 @@ import { generateAdditionalIssues } from '@/lib/gemini/client';
 import crypto from 'crypto';
 import { createLogger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const logger = createLogger('scan');
 
 // Shared scan results store

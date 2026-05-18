@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const repoUrl = searchParams.get('repoUrl');
@@ -27,7 +29,7 @@ export async function GET(request) {
     }
 
     // Fetch repo info to get default branch
-    const repoInfoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+    const repoInfoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers, cache: 'no-store' });
     if (!repoInfoRes.ok) {
       throw new Error('Failed to fetch repository information');
     }
@@ -35,7 +37,7 @@ export async function GET(request) {
     const defaultBranch = repoInfo.default_branch;
 
     // Fetch the tree
-    const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`, { headers });
+    const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`, { headers, cache: 'no-store' });
 
     if (!treeResponse.ok) {
       const errorData = await treeResponse.json();

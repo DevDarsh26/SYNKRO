@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Shared scan results store (same reference as scan/route.js)
 if (!globalThis.__scanResults) {
   globalThis.__scanResults = new Map();
