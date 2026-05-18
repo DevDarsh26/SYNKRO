@@ -4,6 +4,9 @@ import { analyzeFileStatic, analyzePackageJson } from '@/lib/analyzers/static';
 import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 import { generateAdditionalIssues } from '@/lib/gemini/client';
 import crypto from 'crypto';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('scan');
 
 // Shared scan results store
 if (!globalThis.__scanResults) {
@@ -60,7 +63,7 @@ export async function POST(request) {
 
     // Start scanning in background (don't await)
     scanRepository(scanId, repoUrl, githubToken, aiKey).catch((err) => {
-      console.error('Background scan error:', err);
+      logger.error('Background scan error', err);
     });
 
     return NextResponse.json(
@@ -68,7 +71,7 @@ export async function POST(request) {
       { headers: rateLimitHeaders(rl) }
     );
   } catch (error) {
-    console.error('Scan error:', error);
+    logger.error('Scan error', error);
     return NextResponse.json(
       { error: error.message || 'Failed to start scan' },
       { status: 500 }
@@ -81,8 +84,8 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
 
   try {
     // Clone repository
-    const { path: clonedPath, owner, repo } = await cloneRepository(repoUrl, githubToken);
-    repoPath = clonedPath;
+    const { owner, repo, branch } = await cloneRepository(repoUrl, githubToken);
+    repoPath = `${owner}/${repo}`;
 
     scanResults.set(scanId, {
       status: 'scanning',
@@ -93,7 +96,7 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
     });
 
     // Get all code files
-    const files = await getRepositoryFiles(clonedPath);
+    const files = await getRepositoryFiles(owner, repo, branch, githubToken);
 
     // Cap at 150 files for performance (up from 100)
     const filesToScan = files.slice(0, 150);
@@ -116,7 +119,7 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
       await Promise.all(
         batch.map(async (file) => {
           try {
-            const content = await readFileContent(file.fullPath);
+            const content = await readFileContent(owner, repo, file.path, githubToken);
             if (content && content.length < 100000) {
               let issues;
               if (file.name === 'package.json') {
@@ -129,7 +132,7 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
               }
             }
           } catch (err) {
-            console.error(`Error analyzing file ${file.path}:`, err);
+            logger.error(`Error analyzing file ${file.path}`, err);
           } finally {
             processedFiles++;
           }
@@ -195,14 +198,14 @@ async function scanRepository(scanId, repoUrl, githubToken, aiKey) {
           }
         }
       } catch (err) {
-        console.warn('AI analysis step failed or skipped:', err.message);
+        logger.warn('AI analysis step failed or skipped', err);
       } finally {
         await cleanupRepository(repoPath);
       }
     })();
 
   } catch (error) {
-    console.error('Scan error:', error);
+    logger.error('Scan error', error);
 
     scanResults.set(scanId, {
       status: 'failed',

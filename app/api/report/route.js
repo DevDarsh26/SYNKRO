@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { generateScanReport } from '@/lib/gemini/client';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('report');
 
 export async function POST(request) {
   try {
@@ -27,7 +30,7 @@ export async function POST(request) {
       report: reportMarkdown,
     });
   } catch (error) {
-    console.error('Report generation error:', error);
+    logger.error('Report generation error', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate report' },
       { status: 500 }

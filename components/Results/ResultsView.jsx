@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Shield, Code, Zap, TestTube, Package, ChevronDown, ChevronUp,
   FileCode, CheckCircle2, Filter, Sparkles, Loader2, Bot, AlertCircle,
@@ -502,8 +503,9 @@ export function ResultsView({ results, repoUrl }) {
         </CardContent>
       </Card>
 
-      {activeIssue && (
-        <EditorWorkspace issue={activeIssue} repoUrl={repoUrl} onClose={() => setActiveIssue(null)} allIssues={results} />
+      {activeIssue && typeof window !== 'undefined' && createPortal(
+        <EditorWorkspace issue={activeIssue} repoUrl={repoUrl} onClose={() => setActiveIssue(null)} allIssues={results} />,
+        document.body
       )}
     </div>
   );

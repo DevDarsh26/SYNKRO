@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { isConfigured } from '@/config/firebase';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('auth');
 
 let firebaseAuth = null;
 
@@ -169,7 +172,7 @@ export function AuthProvider({ children }) {
             return { success: true, githubToken: token };
           }
         } catch (e) {
-          console.error('Failed to recover credential from error', e);
+          logger.error('Failed to recover credential from error', e);
         }
         return { success: false, error: 'This GitHub account is linked to another user, but we could not recover the access token. Try logging out and logging in with GitHub directly.' };
       }

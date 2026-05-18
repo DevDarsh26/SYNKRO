@@ -1,0 +1,57 @@
+[
+  {
+    "type": "security",
+    "severity": "critical",
+    "title": "Potential SQL Injection",
+    "description": "User input is directly interpolated into a SQL query string, allowing for SQL injection attacks.",
+    "line": 42,
+    "code": "const query = `SELECT * FROM users WHERE username = '${req.body.username}'`;\nawait db.execute(query);",
+    "fix": "const query = 'SELECT * FROM users WHERE username = ?';\nawait db.execute(query, [req.body.username]);",
+    "recommendation": "Always use parameterized queries or an ORM to prevent SQL injection vulnerabilities.",
+    "file": "app/api/auth/login.js"
+  },
+  {
+    "type": "security",
+    "severity": "high",
+    "title": "Hardcoded API Key",
+    "description": "A sensitive API key is hardcoded directly into the source code.",
+    "line": 12,
+    "code": "const STRIPE_SECRET_KEY = 'sk_test_51Nx...';\nconst stripe = require('stripe')(STRIPE_SECRET_KEY);",
+    "fix": "const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;\nconst stripe = require('stripe')(STRIPE_SECRET_KEY);",
+    "recommendation": "Move all sensitive credentials to environment variables and use a .env file for local development.",
+    "file": "lib/payments.js"
+  },
+  {
+    "type": "quality",
+    "severity": "medium",
+    "title": "Uncaught Promise Rejection in Async Loop",
+    "description": "Using .forEach with an async function does not await the promises, potentially causing race conditions and uncaught rejections.",
+    "line": 85,
+    "code": "items.forEach(async (item) => {\n  await processItem(item);\n});",
+    "fix": "for (const item of items) {\n  await processItem(item);\n}",
+    "recommendation": "Use a for...of loop for sequential execution, or Promise.all(items.map(async (item) => ...)) for parallel execution.",
+    "file": "app/services/batch.js"
+  },
+  {
+    "type": "performance",
+    "severity": "low",
+    "title": "Frequent DOM Query in Loop",
+    "description": "Querying the DOM inside a loop causes unnecessary reflows and performance degradation.",
+    "line": 105,
+    "code": "for (let i = 0; i < 1000; i++) {\n  document.getElementById('container').innerHTML += `<div>${i}</div>`;\n}",
+    "fix": "const container = document.getElementById('container');\nlet html = '';\nfor (let i = 0; i < 1000; i++) {\n  html += `<div>${i}</div>`;\n}\ncontainer.innerHTML += html;",
+    "recommendation": "Cache DOM queries outside of loops and use document fragments or batch updates to minimize reflows.",
+    "file": "public/js/app.js"
+  },
+  {
+    "type": "dependency",
+    "severity": "high",
+    "title": "Vulnerable Package Version (lodash)",
+    "description": "The current version of lodash (4.17.15) has a known Prototype Pollution vulnerability.",
+    "line": 14,
+    "code": "\"lodash\": \"^4.17.15\",",
+    "fix": "\"lodash\": \"^4.17.21\",",
+    "recommendation": "Update lodash to version 4.17.21 or higher to patch the Prototype Pollution vulnerability.",
+    "file": "package.json"
+  }
+]

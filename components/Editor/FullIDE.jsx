@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import 'xterm/css/xterm.css';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -417,44 +417,42 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-zinc-900/80 rounded-xl p-1 border border-zinc-800 shadow-inner">
+          <div className="flex items-center bg-zinc-800 rounded-xl p-1 border border-zinc-700 shadow-inner">
             {/* Fix Current File with AI */}
             <Button 
               onClick={handleAIFix} 
               disabled={fixing || fixingAll || loading || !fileContent} 
               size="sm" 
-              className="relative overflow-hidden h-9 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground gap-2 transition-all duration-500 rounded-lg font-bold shadow-[0_0_15px_hsl(var(--primary)/0.2)] hover:shadow-[0_0_25px_hsl(var(--primary)/0.5)] group"
+              className="relative h-9 bg-blue-600 text-white hover:bg-blue-700 gap-2 transition-all duration-300 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-              {fixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
-              <span className="relative z-10">{fixing ? 'Fixing...' : 'Fix with AI'}</span>
+              {fixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
+              <span>{fixing ? 'Fixing...' : 'Fix with AI'}</span>
             </Button>
             
-            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+            <div className="w-px h-5 bg-zinc-700 mx-2"></div>
             
             {/* Fix ALL Files with AI */}
             <Button 
               onClick={handleFixAll} 
               disabled={fixing || fixingAll || loading || Object.keys(issuesByFile).length === 0}
               size="sm" 
-              className="relative overflow-hidden h-9 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500 hover:text-white gap-2 transition-all duration-500 rounded-lg font-bold group"
+              className="relative h-9 bg-amber-600 text-white hover:bg-amber-700 gap-2 transition-all duration-300 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-              {fixingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
-              <span className="relative z-10">{fixingAll ? fixAllProgress || 'Fixing All...' : 'Fix All with AI'}</span>
+              {fixingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              <span>{fixingAll ? fixAllProgress || 'Fixing All...' : 'Fix All with AI'}</span>
             </Button>
 
-            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+            <div className="w-px h-5 bg-zinc-700 mx-2"></div>
 
             {/* Save & Push */}
             <Button 
               onClick={handleSaveAndPush} 
               disabled={committing || loading || !fileContent}
               size="sm" 
-              className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white gap-2 transition-all duration-500 rounded-lg font-bold group"
+              className="relative h-9 bg-emerald-600 text-white hover:bg-emerald-700 gap-2 transition-all duration-300 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />}
-              {committing ? 'Pushing...' : 'Save & Push'}
+              {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+              <span>{committing ? 'Pushing...' : 'Save & Push'}</span>
             </Button>
           </div>
 
