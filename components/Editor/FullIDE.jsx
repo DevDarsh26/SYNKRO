@@ -383,6 +383,14 @@ export function FullIDE({ issue, repoUrl, onClose, allIssues = [] }) {
       
       setSuccessMsg('Successfully committed! Changes pushed to GitHub.');
       setTimeout(() => setSuccessMsg(''), 5000);
+      
+      const fileRes = await fetch(`/api/github/file?repoUrl=${encodeURIComponent(repoUrl)}&path=${encodeURIComponent(activeFile)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (fileRes.ok) {
+        const fileData = await fileRes.json();
+        setSha(fileData.sha);
+      }
     } catch (err) {
       setError(err.message);
     } finally {

@@ -138,7 +138,24 @@ function DashboardContent() {
     return () => clearInterval(interval);
   }, [scanData, user]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const scanId = params.get('scanId');
+    const urlRepo = params.get('repoUrl') || '';
+    if (scanId && !scanData) {
+      setScanData({ scanId, repoUrl: urlRepo });
+      setScanStatus({ status: 'scanning', progress: 50 });
+    }
+  }, []);
+
   const handleScanStart = (data) => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('scanId', data.scanId);
+      if (data.repoUrl) url.searchParams.set('repoUrl', data.repoUrl);
+      window.history.pushState(null, '', url.toString());
+    }
     setScanData(data);
     setScanStatus({ status: 'started', progress: 0 });
     setResults(null);
@@ -167,7 +184,18 @@ function DashboardContent() {
     }
   };
 
-  const handleNewScan  = () => { setScanData(null); setScanStatus(null); setResults(null); setRepoUrl(''); };
+  const handleNewScan  = () => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('scanId');
+      url.searchParams.delete('repoUrl');
+      window.history.pushState(null, '', url.toString());
+    }
+    setScanData(null);
+    setScanStatus(null);
+    setResults(null);
+    setRepoUrl('');
+  };
   const handleSignOut  = async () => { await signOut(); router.push('/'); };
 
   if (loading || !user) return null;

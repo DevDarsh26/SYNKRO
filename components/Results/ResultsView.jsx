@@ -479,9 +479,14 @@ export function ResultsView({ results, repoUrl }) {
                 {filtered.length}
               </Badge>
             </h3>
-            <Button variant="outline" size="sm" onClick={() => downloadBlob(JSON.stringify({ repository: repoUrl, timestamp: new Date().toISOString(), summary: stats, findings: filtered }, null, 2), `synkro-findings-${new Date().toISOString().split('T')[0]}.json`, 'application/json')} className="font-semibold">
-              <Download className="h-4 w-4 mr-2" /> Export JSON
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={() => setActiveIssue({})} className="font-semibold" size="sm">
+                <Code className="h-4 w-4 mr-2" /> Open Workspace
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => downloadBlob(JSON.stringify({ repository: repoUrl, timestamp: new Date().toISOString(), summary: stats, findings: filtered }, null, 2), `synkro-findings-${new Date().toISOString().split('T')[0]}.json`, 'application/json')} className="font-semibold">
+                <Download className="h-4 w-4 mr-2" /> Export JSON
+              </Button>
+            </div>
           </div>
 
           {filtered.length === 0 ? (
